@@ -1,0 +1,24 @@
+# PLI4J makefile settings for running with cver
+
+OUT_TYPE := shared
+EXT_SHARED_LIBS := stdc++
+
+# link in these libs statically as it makes life easier
+LIB_DIRS += $(ROOT_OBJ_DIR)/jnicpp
+LIB_DIRS += $(ROOT_OBJ_DIR)/vpicpp
+STATIC_LIBS += jnicpp
+STATIC_LIBS += vpicpp
+
+ifeq ($(HOST_OS),win32)
+    # check that the user has made the proper cver dll
+    ifeq ($(wildcard $(CVER_HOME)/*),)
+        $(error CVER_HOME is undefined)
+    else
+        ifeq ($(wildcard $(CVER_HOME)/bin/libcver.dll),)
+            $(error $(CVER_HOME)/bin/libcver.dll not found. See README-WIN32.txt for details)
+        endif
+    endif
+
+   LIB_DIRS += $(CVER_HOME)/bin
+   EXT_SHARED_LIBS += cver
+endif

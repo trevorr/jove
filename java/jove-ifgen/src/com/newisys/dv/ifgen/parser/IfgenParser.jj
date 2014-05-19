@@ -1,0 +1,1434 @@
+/*
+ * Jove - The Open Verification Environment for the Java (TM) Platform
+ * Copyright (C) 2005 Newisys, Inc. or its licensors, as applicable.
+ * Java is a registered trademark of Sun Microsystems, Inc. in the U.S. or
+ * other countries.
+ *
+ * Licensed under the Open Software License version 2.0 (the "License"); you
+ * may not use this file except in compliance with the License. You should
+ * have received a copy of the License along with this software; if not, you
+ * may obtain a copy of the License at
+ *
+ * http://opensource.org/licenses/osl-2.0.php
+ *
+ * This software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+ * CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
+options {
+    STATIC = false;
+//    DEBUG_PARSER = true;
+//    DEBUG_TOKEN_MANAGER = true;
+}
+
+PARSER_BEGIN(IfgenParser)
+
+package com.newisys.dv.ifgen.parser;
+
+import java.util.*;
+
+import com.newisys.langschema.*;
+import com.newisys.dv.ifgen.schema.*;
+
+/**
+ * Parser for Jove interface generator definition files.
+ * 
+ * @author Trevor Robinson
+ * @author Jon Nall
+ */
+public class IfgenParser
+{
+    private IfgenSchema schema;
+
+    public void setSchema(IfgenSchema schema)
+    {
+        this.schema = schema;
+    }
+
+    private void addToSchema(IfgenPackage pkg, IfgenPackageMember member)
+    {
+        if (pkg != null) pkg.addMember(member); else schema.addMember(member);
+    }
+
+    private static String parseStringLiteral(String image)
+    {
+        return unescape(unquote(image));
+    }
+
+    private static String unquote(String image)
+    {
+        assert (image.startsWith("\"") && image.endsWith("\""));
+        return image.substring(1, image.length() - 1);
+    }
+
+    public static String escape(String src)
+    {
+        StringBuffer buf = new StringBuffer();
+        int end = src.length();
+        for (int i = 0; i < end; ++i)
+        {
+            char c = src.charAt(i);
+            switch (c)
+            {
+            case 0x08:
+                buf.append("\\b");
+                break;
+            case 0x09:
+                buf.append("\\t");
+                break;
+            case 0x0A:
+                buf.append("\\n");
+                break;
+            case 0x0C:
+                buf.append("\\f");
+                break;
+            case 0x0D:
+                buf.append("\\r");
+                break;
+            case '"':
+                buf.append("\\\"");
+                break;
+            case '\\':
+                buf.append("\\\\");
+                break;
+            default:
+                buf.append(c);
+            }
+        }
+        return buf.toString();
+    }
+
+    public static String unescape(String src)
+    {
+        StringBuffer buf = new StringBuffer();
+        int end = src.length();
+        for (int i = 0; i < end; ++i)
+        {
+            char c = src.charAt(i);
+            if (c == '\\' && ++i < end)
+            {
+                char c2 = src.charAt(i);
+                switch (c2)
+                {
+                case 'b':
+                    c2 = 0x08;
+                    break;
+                case 't':
+                    c2 = 0x09;
+                    break;
+                case 'n':
+                    c2 = 0x0A;
+                    break;
+                case 'f':
+                    c2 = 0x0C;
+                    break;
+                case 'r':
+                    c2 = 0x0D;
+                    break;
+                case '"':
+                case '\\':
+                    break;
+                default:
+                    assert false;
+                }
+                c = c2;
+            }
+            buf.append(c);
+        }
+        return buf.toString();
+    }
+}
+
+PARSER_END(IfgenParser)
+
+/* WHITE SPACE */
+
+<DEFAULT, IN_ID_OR_QNAME>
+SKIP :
+{
+    " " | "\b" | "\t" | "\n" | "\f" | "\r"
+}
+
+/* COMMENTS */
+
+MORE :
+{
+    "//" : IN_SINGLE_LINE_COMMENT
+|
+    "/*" : IN_MULTI_LINE_COMMENT
+}
+
+<IN_SINGLE_LINE_COMMENT>
+SPECIAL_TOKEN :
+{
+    < SINGLE_LINE_COMMENT: "\n" | "\r" | "\r\n" > : DEFAULT
+}
+
+<IN_MULTI_LINE_COMMENT>
+SPECIAL_TOKEN :
+{
+    < MULTI_LINE_COMMENT: "*/" > : DEFAULT
+}
+
+<IN_SINGLE_LINE_COMMENT,IN_MULTI_LINE_COMMENT>
+MORE :
+{
+    < ~[] >
+}
+
+/* RESERVED WORDS */
+TOKEN :
+{
+    < ANYEDGE: "anyedge" >
+|   < BIND: "bind" >
+|   < BIT: "bit" >
+|   < CLOCK: "clock" >
+|   < _DEFAULT: "default" >
+|   < DEPTH: "depth" >
+|   < DRIVE: "drive" >
+|   < ENUM: "enum" >
+|   < FIXED: "fixed" >
+|   < FOR: "for" >
+|   < HDL_NODE: "hdl_node" >
+|   < HDL_TASK: "hdl_task" >
+|   < HVL_TASK: "hvl_task" >
+|   < IMPORT: "import" >
+|   < INOUT: "inout" >
+|   < INPUT: "input" >
+|   < INTEGER: "integer" >
+|   < INTERFACE: "interface" >
+|   < IS: "is" >
+|   < MODULE: "module" >
+|   < NEGEDGE: "negedge" >
+|   < OF: "of" >
+|   < OUTPUT: "output" >
+|   < PACKAGE: "package" >
+|   < PORT: "port" >
+|   < POSEDGE: "posedge" >
+|   < SAMPLE: "sample" >
+|   < SET: "set" >
+|   < STRING: "string" >
+|   < TESTBENCH: "testbench" >
+}
+
+/* OPERATORS */
+
+<DEFAULT, IN_ID_OR_QNAME>
+TOKEN :
+{
+    < OPAREN: "(" >
+|   < CPAREN: ")" >
+|   < OBRACE: "{" >
+|   < CBRACE: "}" >
+|   < OBRACKET: "[" >
+|   < CBRACKET: "]" >
+|   < OANGLE: "<" >
+|   < CANGLE: ">" >
+|   < COMMA: "," >
+|   < DOT: "." >
+|   < DOTDOT: ".." >
+|   < COLON: ":" >
+|   < SEMICOLON: ";" >
+|   < PLUS: "+" >
+|   < MINUS: "-" >
+|   < STAR: "*" >
+}
+
+/* IDENTIFIERS */
+
+// NOTE: identifiers must be defined after reserved words,
+// since reserved words match the pattern for identifiers
+
+<DEFAULT, IN_ID_OR_QNAME>
+TOKEN :
+{
+    < ID: <LETTER> ( <LETTER> | <DIGIT> )* >
+|
+    < VAR: <BARE_VAR> | <BRACED_VAR> >
+|
+    < #BARE_VAR: "$" <ID> >
+|
+    < #BRACED_VAR: "${" <ID> "}" >
+|
+    // Must have at least 1 var, but might have more than one with id's and
+    // numbers interspersed
+    < #ID_VAR_MIX: ( <ID> )? ( <VAR> ( <NUMBER> | <VAR> | <ID> )* )+ >
+|
+    < #LETTER: ["a"-"z", "A"-"Z", "_"] >
+|
+    < #NUMBER: <DIGIT> ( <DIGIT> )* >
+|
+    < #DIGIT: ["0"-"9", "_"] >
+|
+    < QUOTED_ID: "\"" <ID> "\"" >
+|
+    < QUOTED_QNAME: "\"" <ID> ( "." <ID> )* "\"" >
+|
+    // Must have at least one var in the qualified name
+    < QUOTED_VAR_QNAME: "\"" ( <ID> ( "." <ID> )* "." )? ( <ID_VAR_MIX> ( "." ( <ID> | <ID_VAR_MIX> ) )* )+ "\"" >
+|
+    < QUOTED_QNAME_DOT_STAR: "\"" <ID> ( "." <ID> )* ".*\"" >
+}
+
+/* LITERALS */
+
+<DEFAULT, IN_ID_OR_QNAME>
+TOKEN :
+{
+    < DECIMAL_LITERAL: ("-")? ["1"-"9"] (["0"-"9"])* >
+|
+    < HEX_LITERAL: ("-")? "0" ["x", "X"] (["0"-"9", "a"-"f", "A"-"F"])+ >
+|
+    < OCTAL_LITERAL: ("-")? "0" (["0"-"7"])* >
+|
+    < STRING_LITERAL:
+        "\""
+        (
+            (~["\"", "\\", "\n", "\r"])
+        |
+            ( "\\" ["b", "t", "n", "f", "r", "\\", "'", "\""] )
+        )*
+        "\""
+    >
+}
+
+/* GRAMMAR */
+
+IfgenFile file() :
+{
+    IfgenFile file = new IfgenFile();
+    IfgenPackage packageDecl = null;
+    IfgenWildname importDecl;
+    IfgenSchemaMember member;
+}
+{
+    [ packageDecl = package_decl() { file.setPackageDecl(packageDecl); } ]
+    ( importDecl = import_decl() { file.addImportDecl(importDecl); } )*
+    (
+        (
+            member = port_def(packageDecl)
+        |
+            member = intf_def(packageDecl)
+        |
+            member = bind_def(packageDecl)
+        |
+            member = hdl_task_def(packageDecl)
+        |
+            member = hvl_task_def(packageDecl)
+        |
+            member = enum_def(packageDecl)
+        |
+            member = testbench_def(packageDecl)
+        )
+        { file.addDefinition(member); }
+    )*
+    <EOF>
+    { return file; }
+}
+
+IfgenPackage package_decl() :
+{
+    IfgenUnresolvedName qname;
+}
+{
+    <PACKAGE> qname = qname() <SEMICOLON>
+    {
+        IfgenPackage pkg = null;
+        Scope scope = schema;
+        for (String id : qname.getIdentifiers()) {
+            Iterator iter = scope.lookupObjects(id, IfgenNameKind.PACKAGE);
+            if (iter.hasNext()) {
+                pkg = (IfgenPackage) iter.next();
+            } else {
+                IfgenName name = new IfgenName(id, IfgenNameKind.PACKAGE, pkg);
+                IfgenPackage newPkg = new IfgenPackage(schema, name, pkg);
+                addToSchema(pkg, newPkg);
+                pkg = newPkg;
+            }
+            scope = pkg;
+        }
+        return pkg;
+    }
+}
+
+IfgenWildname import_decl() :
+{
+    IfgenWildname importDecl;
+}
+{
+    <IMPORT> importDecl = wildname() <SEMICOLON>
+    { return importDecl; }
+}
+
+IfgenEnum enum_def(IfgenPackage pkg) :
+{
+    IfgenEnum e;
+    IfgenEnumType type;
+    IfgenName name;
+    String id;
+}
+{
+    <ENUM> id = id()
+    {
+        name = new IfgenName(id, IfgenNameKind.TYPE, pkg);
+        type = schema.addEnumType(name);
+        e = new IfgenEnum(schema, type);
+        type.setEnumeration(e);
+        addToSchema(pkg, e);
+    }
+ 
+    <OBRACE>
+        id = id()
+        {
+            name = new IfgenName(id, IfgenNameKind.EXPRESSION,
+                e.getName().getNamespace());
+            e.addElement(new IfgenEnumElement(schema, name, e));
+        }
+        (
+            <COMMA> id = id()
+            {
+                name = new IfgenName(id, IfgenNameKind.EXPRESSION,
+                    e.getName().getNamespace());
+                e.addElement(new IfgenEnumElement(schema, name, e));
+            }
+        )*
+        <SEMICOLON>
+    <CBRACE>
+    {
+        return e;
+    }
+}
+
+IfgenPort port_def(IfgenPackage pkg) :
+{
+    String id, revID;
+    IfgenPort port, revPort = null;
+    IfgenPortSignal member;
+}
+{
+    <PORT> id = id()
+    {
+        IfgenName name = new IfgenName(id, IfgenNameKind.TYPE, pkg);
+        port = new IfgenPort(schema, name);
+        addToSchema(pkg, port);
+    }
+    [
+        revID = id()
+        {
+            IfgenName revName = new IfgenName(revID, IfgenNameKind.TYPE, pkg);
+            revPort = new IfgenPort(schema, revName);
+            revPort.setReverse(true);
+            addToSchema(pkg, revPort);
+
+            port.setReverseOf(revPort);
+            revPort.setReverseOf(port);
+        }
+    ]
+    <OBRACE>
+    (
+        member = port_member(port)
+        {
+            port.addMember(member);
+
+            if (revPort != null) {
+                String memberID = member.getName().getIdentifier();
+                IfgenDirection dir = member.getDirection();
+                if(!member.isDirectionFixed())
+                {
+                    dir = dir.getReverse();
+                }
+                IfgenPortSignal revMember = new IfgenPortSignal(
+                    revPort, memberID, dir, member.isDirectionFixed());
+                revPort.addMember(revMember);
+            }
+        }
+    )*
+    <CBRACE>
+    { return port; }
+}
+
+IfgenPortSignal port_member(IfgenPort port) :
+{
+    IfgenDirection dir = IfgenDirection.INOUT;
+    boolean fixed = false;
+    String id;
+}
+{
+    [ [ <FIXED> { fixed = true; } ] dir = direction() ] id = id() <SEMICOLON>
+    {
+        IfgenPortSignal signal = new IfgenPortSignal(port, id, dir, fixed);
+        return signal;
+    }
+}
+
+IfgenDirection direction() :
+{
+    IfgenDirection dir;
+}
+{
+    (
+        <INPUT> { dir = IfgenDirection.INPUT; }
+    |
+        <OUTPUT> { dir = IfgenDirection.OUTPUT; }
+    |
+        <INOUT> { dir = IfgenDirection.INOUT; }
+    )
+    { return dir; }
+}
+
+IfgenInterface intf_def(IfgenPackage pkg) :
+{
+    String id;
+    IfgenInterface intf;
+    IfgenInterfaceMember member;
+    List<IfgenVariableDecl> params = Collections.EMPTY_LIST;
+}
+{
+    <INTERFACE> id = id()
+    [ params = parameter_def(false) ]
+    {
+        IfgenName name = new IfgenName(id, IfgenNameKind.TYPE, pkg);
+        intf = new IfgenInterface(schema, name, params);
+        addToSchema(pkg, intf);
+    }
+    <OBRACE> ( member = intf_member(intf) { intf.addMember(member); } )* <CBRACE>
+    { return intf; }
+}
+
+IfgenInterfaceMember intf_member(IfgenInterface intf) :
+{
+    IfgenInterfaceMember member;
+}
+{
+    (
+        member = intf_default_def()
+    |
+        member = clock_def(intf)
+    |
+        member = input_def(intf)
+    |
+        member = output_def(intf)
+    |
+        member = inout_def(intf)
+    )
+    <SEMICOLON>
+    { return member; }
+}
+
+IfgenInterfaceMember intf_default_def() :
+{
+    IfgenInterfaceMember member;
+}
+{
+    <_DEFAULT> ( member = sample_def() | member = drive_def() | member = module_def() )
+    { return member; }
+}
+
+IfgenSampleDef sample_def() :
+{
+    IfgenEdge edge;
+    int skew;
+}
+{
+    <SAMPLE> <OPAREN> edge = edge() <COMMA> skew = integer() <CPAREN>
+    { return new IfgenSampleDef(schema, edge, skew); }
+}
+
+IfgenDriveDef drive_def() :
+{
+    IfgenEdge edge;
+    int skew;
+}
+{
+    <DRIVE> <OPAREN> edge = edge() <COMMA> skew = integer() <CPAREN>
+    { return new IfgenDriveDef(schema, edge, skew); }
+}
+
+IfgenEdge edge() :
+{
+    IfgenEdge edge;
+}
+{
+    (
+        <POSEDGE> { edge = IfgenEdge.POSEDGE; }
+    |
+        <NEGEDGE> { edge = IfgenEdge.NEGEDGE; }
+    |
+        <ANYEDGE> { edge = IfgenEdge.ANYEDGE; }
+    )
+    { return edge; }
+}
+
+IfgenModuleDef module_def() :
+{
+    IfgenModuleDef ret;
+}
+{
+    <MODULE>
+    ret = bare_module_def()
+    { return ret; }
+}
+
+IfgenModuleDef bare_module_def() :
+{
+    IfgenUnresolvedName qname;
+    boolean containsVarRef = false;
+}
+{
+    (
+        qname = qname()
+    |
+        qname = var_ref() { containsVarRef = true; }
+    )
+    { return new IfgenModuleDef(schema, qname, containsVarRef); }
+}
+
+IfgenInterfaceSignal clock_def(IfgenInterface intf) :
+{
+    String id;
+    IfgenInterfaceSignal signal;
+    IfgenModuleDef module;
+    IfgenSignalRef node;
+}
+{
+    <CLOCK> id = id()
+    {
+        signal = new IfgenInterfaceSignal(intf, id, IfgenSignalType.CLOCK, 1);
+    }
+    [
+        module = module_def() { signal.setModule(module); }
+    |
+        node = hdl_node_def() { signal.setHDLNode(node); }
+    ]
+    { return signal; }
+}
+
+IfgenInterfaceSignal input_def(IfgenInterface intf) :
+{
+    int size = 1;
+    String id;
+    IfgenInterfaceSignal signal;
+    IfgenSampleDef sample;
+    int sampleDepth;
+    IfgenModuleDef module;
+    IfgenSignalRef node;
+}
+{
+    <INPUT> [ size = vector_def() ] id = id()
+    {
+        signal = new IfgenInterfaceSignal(intf, id, IfgenSignalType.INPUT, size);
+    }
+    [ sample = sample_def() { signal.setSample(sample); } ]
+    [ sampleDepth = depth_def() { signal.setSampleDepth(sampleDepth); } ]
+    [
+        module = module_def() { signal.setModule(module); }
+    |
+        node = hdl_node_def() { signal.setHDLNode(node); }
+    ]
+    { return signal; }
+}
+
+IfgenInterfaceSignal output_def(IfgenInterface intf) :
+{
+    int size = 1;
+    String id;
+    IfgenInterfaceSignal signal;
+    IfgenDriveDef drive;
+    IfgenModuleDef module;
+    IfgenSignalRef node;
+}
+{
+    <OUTPUT> [ size = vector_def() ] id = id()
+    {
+        signal = new IfgenInterfaceSignal(intf, id, IfgenSignalType.OUTPUT, size);
+    }
+    [ drive = drive_def() { signal.setDrive(drive); } ]
+    [
+        module = module_def() { signal.setModule(module); }
+    |
+        node = hdl_node_def() { signal.setHDLNode(node); }
+    ]
+    { return signal; }
+}
+
+IfgenInterfaceSignal inout_def(IfgenInterface intf) :
+{
+    int size = 1;
+    String id;
+    IfgenInterfaceSignal signal;
+    IfgenSampleDef sample;
+    IfgenDriveDef drive;
+    int sampleDepth;
+    IfgenModuleDef module;
+    IfgenSignalRef node;
+}
+{
+    <INOUT> [ size = vector_def() ] id = id()
+    {
+        signal = new IfgenInterfaceSignal(intf, id, IfgenSignalType.INOUT, size);
+    }
+    [ sample = sample_def() { signal.setSample(sample); } ]
+    [ drive = drive_def() { signal.setDrive(drive); } ]
+    [ sampleDepth = depth_def() { signal.setSampleDepth(sampleDepth); } ]
+    [
+        module = module_def() { signal.setModule(module); }
+    |
+        node = hdl_node_def() { signal.setHDLNode(node); }
+    ]
+    { return signal; }
+}
+
+int vector_def() :
+{
+    int high, zero;
+}
+{
+    <OBRACKET> high = integer() <COLON> zero = integer() <CBRACKET>
+    {
+        if (zero != 0) throw new ParseException("Zero LSB index expected for vector declaration");
+        return high + 1;
+    }
+}
+
+int depth_def() :
+{
+    int depth;
+}
+{
+    <DEPTH> depth = integer()
+    { return depth; }
+}
+
+IfgenSignalRef hdl_node_def() :
+{
+    IfgenSignalRef ref;
+    Token t;
+}
+{
+    <HDL_NODE>
+    (
+        ref = signal_ref(true)
+    |
+        t = <STRING_LITERAL>
+        {
+            IfgenExpression expr;
+            String s = parseStringLiteral(t.image);
+            if(s.contains("$"))
+            {
+                expr = new IfgenComplexVariableRef(schema, new IfgenUnresolvedName(s));
+            }
+            else
+            {
+                expr = new IfgenStringLiteral(schema, s);
+            }
+            ref = new IfgenHDLSignalRef(expr);
+        }
+    )
+    { return ref; }
+}
+
+IfgenBind bind_def(IfgenPackage pkg) :
+{
+    String id;
+    IfgenUnresolvedName portQName;
+    IfgenBind bind;
+    IfgenBindMember member;
+    List<IfgenVariableDecl> params = Collections.EMPTY_LIST;
+}
+{
+    <BIND> id = id() [ params = parameter_def(false) ] <IS> portQName = qname()
+    {
+        IfgenName name = new IfgenName(id, IfgenNameKind.TYPE, pkg);
+        bind = new IfgenBind(schema, name, portQName, params);
+        addToSchema(pkg, bind);
+    }
+    <OBRACE> ( member = bind_member(bind) { bind.addMember(member); } )* <CBRACE>
+    { return bind; }
+}
+
+IfgenBindMember bind_member(IfgenBind bind) :
+{
+    IfgenBindMember member;
+}
+{
+    ( member = bind_default_def() | member = signal_bind_def(bind) ) <SEMICOLON>
+    { return member; }
+}
+
+IfgenBindMember bind_default_def() :
+{
+    IfgenBindMember member;
+}
+{
+    <_DEFAULT> member = default_intf_def()
+    { return member; }
+}
+
+IfgenInterfaceDef default_intf_def() :
+{
+    IfgenUnresolvedName qname;
+    List<IfgenExpression> args = Collections.EMPTY_LIST;
+}
+{
+    <INTERFACE> qname = qname() [ args = parameter_args() ]
+    { return new IfgenInterfaceDef(qname, args); }
+}
+
+IfgenBindSignal signal_bind_def(IfgenBind bind) :
+{
+    String id;
+    IfgenSignalRef ref;
+}
+{
+    id = id() ref = signal_ref(false)
+    { return new IfgenBindSignal(bind, id, ref); }
+}
+
+IfgenSignalRef signal_ref(boolean hdl) :
+{
+    IfgenSignalRef ref;
+}
+{
+    ( ref = signal_slice(hdl) | ref = signal_concat(hdl) )
+    { return ref; }
+}
+
+IfgenSignalRef signal_slice(boolean hdl) :
+{
+    IfgenUnresolvedName qname;
+    IfgenExpression expr;
+    IfgenSignalRef ref, baseRef;
+}
+{
+    (
+        qname = qname()
+        { expr = new IfgenStringLiteral(schema, qname.toString()); }
+    |
+        qname = var_ref()
+        {
+            if(!hdl)
+            {
+                throw new ParseException("Variables are not allowed in this context");
+            }
+            expr = new IfgenComplexVariableRef(schema, new IfgenUnresolvedName(qname.toString()));
+        }
+    )
+    {
+        if (hdl) {
+            baseRef = new IfgenHDLSignalRef(expr);
+        } else {
+            baseRef = new IfgenInterfaceSignalRef(qname);
+        }
+        ref = baseRef;
+    }
+    [
+        { int from, to; }
+        <OBRACKET> from = integer() ( <COLON> to = integer() | { to = from; } ) <CBRACKET>
+        { ref = new IfgenSliceSignalRef(baseRef, from, to); }
+    ]
+    { return ref; }
+}
+
+IfgenConcatSignalRef signal_concat(boolean hdl) :
+{
+    IfgenConcatSignalRef concat = new IfgenConcatSignalRef();
+    IfgenSignalRef member;
+}
+{
+    <OBRACE>
+    member = signal_slice(hdl) { concat.addMember(member); }
+    ( <COMMA> member = signal_slice(hdl) { concat.addMember(member); } )*
+    <CBRACE>
+    { return concat; }
+}
+
+IfgenHDLTask hdl_task_def(IfgenPackage pkg) :
+{
+    IfgenHDLTask task;
+    String id;
+    IfgenTaskArg arg;
+    IfgenModuleDef path;
+    List<IfgenVariableDecl> params = Collections.EMPTY_LIST;
+}
+{
+    <HDL_TASK> id = id()
+    [ params = parameter_def(false) ]
+    <OPAREN>
+    {
+        IfgenName name = new IfgenName(id, IfgenNameKind.METHOD, pkg);
+        task = new IfgenHDLTask(schema, name, params);
+        addToSchema(pkg, task);
+    }
+    [
+        arg = task_arg() { task.addArgument(arg); }
+        ( <COMMA> arg = task_arg() { task.addArgument(arg); } )*
+    ]
+    <CPAREN>
+	path = bare_module_def()
+    { task.setInstancePath(path); }
+    <SEMICOLON>
+    { return task; }
+}
+
+IfgenHVLTask hvl_task_def(IfgenPackage pkg) :
+{
+    IfgenHVLTask task;
+    String id;
+    IfgenTaskArg arg;
+}
+{
+    <HVL_TASK> id = id() <OPAREN>
+    {
+        IfgenName name = new IfgenName(id, IfgenNameKind.METHOD, pkg);
+        task = new IfgenHVLTask(schema, name);
+        addToSchema(pkg, task);
+    }
+    [
+        arg = task_arg() { task.addArgument(arg); }
+        ( <COMMA> arg = task_arg() { task.addArgument(arg); } )*
+    ]
+    <CPAREN>
+    <SEMICOLON>
+    { return task; }
+}
+
+IfgenTaskArg task_arg() :
+{
+    IfgenDirection dir;
+    IfgenType type = schema.BIT_TYPE;
+    int size = 1;
+    String id;
+}
+{
+    dir = direction()
+    [ type = arg_type() ]
+    [
+        size = vector_def()
+        {
+            if (type != schema.BIT_TYPE)
+            {
+                throw new ParseException("Cannot specify size for non-bit type arguments");
+            }
+        }
+    ]
+    id = id()
+    {
+        IfgenName name = new IfgenName(id, IfgenNameKind.EXPRESSION, null);
+        return new IfgenTaskArg(schema, name, dir, type, size);
+    }
+}
+
+IfgenTestbench testbench_def(IfgenPackage pkg) :
+{
+    IfgenTestbench tb = null;
+    List<IfgenVariableDecl> params = Collections.EMPTY_LIST;
+    String id;
+    IfgenWildname importDecl;
+    IfgenTestbenchMember member;
+}
+{
+    <TESTBENCH> id = id()
+    [ params = parameter_def(true) ]
+    <OBRACE>
+    {
+        IfgenName name = new IfgenName(id, IfgenNameKind.TYPE, pkg);
+        tb = new IfgenTestbench(schema, name, params);
+        tb.setPackage(pkg);
+    }
+    // imports, if present, must precede any other testbench members
+    ( importDecl = import_decl() { tb.addImportDecl(importDecl); } )*
+
+    ( member = testbench_member() { tb.addMember(member); } )*
+    <CBRACE>
+    { return tb; }
+        
+}
+
+IfgenTestbenchMember testbench_member() :
+{
+    IfgenTestbenchMember member;
+}
+{
+    (
+        <BIND> member = template_inst(IfgenTemplateKind.BIND) <SEMICOLON>
+    |
+        <INTERFACE> member = template_inst(IfgenTemplateKind.INTERFACE) <SEMICOLON>
+    |
+        <HDL_TASK> member = template_inst(IfgenTemplateKind.HDL_TASK) <SEMICOLON>
+    |
+        member = for_stmt()
+    )
+    { return member; }
+}
+
+
+IfgenForStatement for_stmt() :
+{
+    IfgenForStatement forStmt = null;
+    IfgenVariableDecl decl;
+    IfgenExpression set = null;
+    IfgenTestbenchMember member;
+}
+{
+    <FOR> decl = var_decl(false)
+    <OPAREN>
+        set = set()
+    <CPAREN>
+    {
+        forStmt = new IfgenForStatement(schema, decl, set);
+    }
+
+    <OBRACE>
+        ( member = testbench_member() { forStmt.addMember(member); } )*
+    <CBRACE>
+    { return forStmt; }
+}
+
+IfgenExpression set() :
+{
+    IfgenExpression set1;
+    IfgenExpression set2;
+    boolean doUnion = false;
+}
+{
+    set1 = set_intersection()
+    (
+        (
+            <PLUS> { doUnion = true; }
+        |
+            <MINUS> { doUnion = false; }
+        )
+        set2 = set_intersection() 
+        {
+            if(doUnion)
+            {
+                set1 = new IfgenSetUnion(schema, set1, set2);            
+            }
+            else
+            {
+                set1 = new IfgenSetDifference(schema, set1, set2);            
+            }
+        }
+    )*
+    { return set1; }
+}
+
+
+IfgenExpression set_intersection() :
+{
+    IfgenExpression set1;
+    IfgenExpression set2;
+}
+{
+    set1 = set_primary_expr()
+    (
+        <STAR>
+        set2 = set_primary_expr() 
+        {
+            set1 = new IfgenSetIntersection(schema, set1, set2);            
+        }
+    )*
+    { return set1; }
+}
+
+IfgenExpression set_primary_expr() :
+{
+    IfgenExpression expr;
+    Token t;
+}
+{
+    (
+        t = <VAR>
+        {
+            IfgenUnresolvedName name = new IfgenUnresolvedName(t.image);
+            expr = new IfgenVariableRef(schema, name);
+        }
+    |
+        <OPAREN> expr = set() <CPAREN>
+    |
+        expr = set_literal()
+    )
+    { return expr; }
+}
+
+IfgenSetLiteral set_literal() :
+{
+    IfgenSet set;
+    IfgenExpression expr;
+    IfgenRange range;
+}
+{
+    <OBRACKET> { set = new IfgenSet(); }
+        (
+            LOOKAHEAD(2)
+            range = range() { set.addRange(range); }
+        |
+            expr = parameter_arg() { set.addExpression(expr); }
+        )
+        (
+            <COMMA>
+            (
+                LOOKAHEAD(2)
+                range = range() { set.addRange(range); }
+            |
+                expr = parameter_arg() { set.addExpression(expr); }
+            )
+        )*
+    <CBRACKET>
+    { return new IfgenSetLiteral(schema, set); }
+}
+
+IfgenRange range() :
+{
+    Token t;
+    int i;
+    String id;
+    IfgenExpression exprFrom, exprTo;
+    IfgenName name;
+    IfgenEnumElement enumElt;
+    IfgenUnresolvedName unresName;
+}
+{
+    (
+        // $var..$var, $var..INT, $var..ENUM
+        t = <VAR>
+        {
+            unresName = new IfgenUnresolvedName(t.image); 
+            exprFrom = new IfgenVariableRef(schema, unresName);
+        }
+        <DOTDOT>
+        (
+            t = <VAR>
+            {
+                unresName = new IfgenUnresolvedName(t.image);
+                exprTo = new IfgenVariableRef(schema, unresName);
+            }
+        |
+            i = integer() { exprTo = new IfgenIntegerLiteral(schema, i); }
+        |
+            id = id()
+            {
+                exprTo = new IfgenEnumLiteral(schema, new IfgenUnresolvedName(id));
+            }
+        )
+    |
+        // INT..$var, ENUM..$var, INT..INT, ENUM..ENUM
+        (
+            i = integer() { exprFrom = new IfgenIntegerLiteral(schema, i); }
+        |
+            id = id()
+            {
+                exprFrom = new IfgenEnumLiteral(schema, new IfgenUnresolvedName(id));
+            }
+        )
+        <DOTDOT>
+        (
+            t = <VAR>
+            {
+                unresName = new IfgenUnresolvedName(t.image);
+                exprTo = new IfgenVariableRef(schema, unresName);
+            }
+        |
+            i = integer()
+            {
+                if (!(exprFrom instanceof IfgenIntegerLiteral))
+                {
+                    throw new ParseException("Cannot mix enumerations and literals in ranges");
+                }
+                exprTo = new IfgenIntegerLiteral(schema, i);
+            }
+        |
+            id = id()
+            {
+                if (!(exprFrom instanceof IfgenEnumLiteral))
+                {
+                    throw new ParseException("Cannot mix enumerations and literals in ranges");
+                }
+                exprTo = new IfgenEnumLiteral(schema, new IfgenUnresolvedName(id));
+            }
+        )
+    ) { return new IfgenRange(exprFrom, exprTo); }
+}
+
+
+IfgenTemplateInst template_inst(IfgenTemplateKind type) :
+{
+    String id;
+    IfgenUnresolvedName templateName;
+    List<IfgenExpression> args;
+}
+{
+    id = id() templateName = qname() args = parameter_args()
+    {
+        IfgenName idName = new IfgenName(id, IfgenNameKind.EXPRESSION);
+        return new IfgenTemplateInst(schema, templateName, idName, type, args);
+    }
+}
+
+List<IfgenVariableDecl> parameter_def(boolean setsAreAllowed) :
+{
+    List<IfgenVariableDecl> params = Collections.EMPTY_LIST;
+    IfgenType type;
+    String id;
+    IfgenName name;
+    IfgenVariable var;
+    IfgenVariableDecl decl;
+}
+{
+    <OANGLE>
+        decl = var_decl(setsAreAllowed)
+        {
+            params = new LinkedList<IfgenVariableDecl>();
+            params.add(decl);
+        }
+
+        (
+            <COMMA> decl = var_decl(setsAreAllowed)
+            { params.add(decl); }
+        )*
+    <CANGLE>
+    { return params; }
+}
+
+List<IfgenExpression> parameter_args() :
+{
+    List<IfgenExpression> args = Collections.EMPTY_LIST;
+    IfgenExpression arg;
+}
+{
+    <OANGLE>
+        arg = parameter_arg()
+        {
+            args = new LinkedList<IfgenExpression>();
+            args.add(arg);
+        }
+
+        ( <COMMA> arg = parameter_arg() { args.add(arg); } )*
+    <CANGLE>
+    { return args; }
+}
+
+IfgenType var_type(boolean setsAreAllowed) :
+{
+    IfgenType type;
+    String id;
+}
+{
+    (
+        <INTEGER>
+        { type = schema.INTEGER_TYPE; }
+    |
+        <STRING>
+        { type = schema.STRING_TYPE; }
+    |
+        <SET> <OF> type = var_type(false) // disallow sets of sets
+        {
+            if(!setsAreAllowed)
+            {
+                throw new ParseException("Sets are not allowed in this context");
+            } 
+            type = new IfgenSetType(schema, type);
+        }
+    |
+        id = id() 
+        {
+            type = new IfgenUnresolvedEnumType(schema, new IfgenUnresolvedName(id));
+        }
+    )
+    { return type; }
+}
+
+IfgenVariableDecl var_decl(boolean setsAreAllowed) :
+{
+    IfgenType type;
+    String id;
+}
+{
+    type = var_type(setsAreAllowed) id = id()
+    {
+        IfgenName name = new IfgenName(id, IfgenNameKind.EXPRESSION);
+        IfgenVariable var = new IfgenVariable(name, type);
+        return new IfgenVariableDecl(schema, var);
+    }
+}
+
+IfgenType arg_type() :
+{
+    IfgenType type;
+}
+{
+    (
+        <BIT> { type = schema.BIT_TYPE; }
+    |
+        <INTEGER> { type = schema.INTEGER_TYPE; }
+    )
+    { return type; }
+}
+
+String id() :
+{
+    String id;
+    Token t;
+}
+{
+    { token_source.SwitchTo(IN_ID_OR_QNAME); }
+    (
+        t = <ID> { id = t.image; }
+    |
+        t = <QUOTED_ID> { id = unquote(t.image); }
+    )
+    {
+        token_source.SwitchTo(DEFAULT);
+        return id;
+    } 
+}
+
+IfgenUnresolvedName unquoted_qname() :
+{
+    IfgenUnresolvedName qname;
+    Token t;
+}
+{
+    { token_source.SwitchTo(IN_ID_OR_QNAME); }
+    t = <ID>
+    {
+        qname = new IfgenUnresolvedName();
+        qname.addIdentifier(t.image);
+    }
+    ( LOOKAHEAD(2) <DOT> t = <ID> { qname.addIdentifier(t.image); } )*
+    {
+        token_source.SwitchTo(DEFAULT);
+        return qname;
+    } 
+}
+
+IfgenUnresolvedName quoted_qname() :
+{
+    Token t;
+}
+{
+    ( t = <QUOTED_ID> | t = <QUOTED_QNAME> )
+    { return IfgenUnresolvedName.parse(unquote(t.image)); }
+}
+
+IfgenUnresolvedName qname() :
+{
+    IfgenUnresolvedName qname;
+    Token t;
+}
+{
+    (
+        qname = quoted_qname()
+    |
+        qname = unquoted_qname()
+    )
+    { return qname; }
+}
+
+IfgenExpression parameter_arg() :
+{
+    IfgenExpression expr;
+    IfgenUnresolvedName qname;
+    Token t;
+    int i;
+    String id;
+}
+{
+    (
+        qname = var_ref()
+        {
+            int lastDollar = qname.toString().lastIndexOf('$');
+            boolean multiRef = qname.getIdentifiers().size() > 1 || lastDollar > 0;
+            assert(lastDollar >= 0); // insure this is a ref
+
+            if(multiRef)
+            {
+                // either a qualified name: foo.$bar
+                // or a multi-variable reference: ${foo}$bar
+                expr = new IfgenComplexVariableRef(schema, qname);
+            }
+            else
+            {
+                // a simple reference like "$bar"
+                expr = new IfgenVariableRef(schema, qname);
+            }
+        }
+    |
+        i = integer()
+        {
+            expr = new IfgenIntegerLiteral(schema, i);
+        }
+    |
+        qname = quoted_qname()
+        {
+            expr = new IfgenStringLiteral(schema, qname.toString());
+        }
+    |
+        qname = unquoted_qname()
+        {
+            expr = new IfgenEnumLiteral(schema, qname);
+        }
+    )
+    { return expr; }
+}
+
+IfgenUnresolvedName var_ref() :
+{
+    IfgenUnresolvedName qname;
+    Token t;
+}
+{
+    (
+        t = <QUOTED_VAR_QNAME>
+        { qname = IfgenUnresolvedName.parse(unquote(t.image)); }
+    |
+        t = <VAR>
+        {
+            qname = new IfgenUnresolvedName();
+            qname.addIdentifier(t.image);
+        }
+    )
+    { return qname; } 
+}
+
+IfgenWildname wildname() :
+{
+    IfgenWildname wildname;
+    IfgenUnresolvedName qname;
+    Token t;
+}
+{
+    (
+        t = <QUOTED_QNAME_DOT_STAR>
+        {
+            qname = IfgenUnresolvedName.parse(t.image.substring(1, t.image.length() - 3));
+            wildname = new IfgenWildname(qname, true);
+        }
+    |
+        qname = qname() { wildname = new IfgenWildname(qname); }
+        [ <DOT> <STAR> { wildname.setImportMembers(true); } ]
+    )
+    { return wildname; }
+}
+
+int integer() :
+{
+    Token t;
+    int i;
+}
+{
+    (
+        t = <DECIMAL_LITERAL> { i = Integer.parseInt(t.image, 10); }
+    |
+        t = <HEX_LITERAL>
+        {
+            boolean neg = t.image.charAt(0) == '-';
+            i = Integer.parseInt(t.image.substring(neg ? 3 : 2), 16);
+            if (neg) i = -i;
+        }
+    |
+        t = <OCTAL_LITERAL> { i = Integer.parseInt(t.image, 8); }
+    )
+    { return i; }
+}

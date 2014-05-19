@@ -1,0 +1,1263 @@
+
+// Cons TBD
+//
+// prefixes
+//   - this references
+//   - super references
+//
+// suffixes
+//   - bit slices
+//   - array access
+//   - ".class" access
+//
+// operators
+//   - reductive and
+//   - reductive or
+//   - reductive xor
+//   - foreach
+// casts
+//
+// method invocations
+
+
+options {
+  JAVA_UNICODE_ESCAPE = true;
+  ERROR_REPORTING = false;
+  STATIC = false;
+  DEBUG_PARSER = false;
+  DEBUG_TOKEN_MANAGER = false;
+}
+
+PARSER_BEGIN(ConstraintParser)
+
+package com.newisys.randsolver.parser;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+
+import com.newisys.langschema.constraint.*;
+import com.newisys.langschema.java.JavaRawClass;
+import com.newisys.langschema.java.JavaName;
+import com.newisys.randsolver.NameParser;
+import com.newisys.randsolver.Solver;
+import com.newisys.verilog.util.BitVector;
+
+/**
+ * Grammar to parse Jove constraints
+ * @author Jon Nall nall@newisys.com, based on Java 1.5 grammar
+ */
+public class ConstraintParser
+{
+   ConsSchema schema = Solver.schema;
+   JavaRawClass mJavaClass;
+   ConsConstraint constraint; // the constraint we'll parse
+   Class mClass;
+
+   public static ConstraintParser getConstraintParser(InputStream input, Class klass)
+   {
+        final ConstraintParser parser = new ConstraintParser(input);
+        parser.mClass = klass;
+        parser.mJavaClass = new JavaRawClass(parser.schema, klass.getName());
+        return parser;
+   }
+
+   ConstraintParser(String fileName)
+   {
+      this(System.in);
+      try { ReInit(new FileInputStream(new File(fileName))); }
+      catch(Exception e) { e.printStackTrace(); }
+   }
+
+  public static void main(String args[]) {
+    ConstraintParser parser;
+    if (args.length == 0) {
+      System.out.println("Constraint Parser Version 1.0:  Reading from standard input . . .");
+      parser = new ConstraintParser(System.in);
+    } else if (args.length == 1) {
+      System.out.println("Constraint Parser Version 1.0:  Reading from file " + args[0] + " . . .");
+      try {
+        parser = new ConstraintParser(new java.io.FileInputStream(args[0]));
+      } catch (java.io.FileNotFoundException e) {
+        System.out.println("Constraint Parser Version 1.0:  File " + args[0] + " not found.");
+        return;
+      }
+    } else {
+      System.out.println("Constraint Parser Version 1.0:  Usage is one of:");
+      System.out.println("         java ConstraintParser < inputfile");
+      System.out.println("OR");
+      System.out.println("         java ConstraintParser inputfile");
+      return;
+    }
+    try {
+      //parser.CompilationUnit();
+      parser.Constraint();
+      System.out.println("Constraint Parser Version 1.0:  Cons program parsed successfully.");
+    } catch (ParseException e) {
+      System.out.println(e.getMessage());
+      System.out.println("Constraint Parser Version 1.0:  Encountered errors during parse.");
+    }
+  }
+
+}
+
+PARSER_END(ConstraintParser)
+
+/* WHITE SPACE */
+
+SKIP :
+{
+  " "
+| "\t"
+| "\n"
+| "\r"
+| "\f"
+}
+
+/* COMMENTS */
+
+MORE :
+{
+  "//" : IN_SINGLE_LINE_COMMENT
+|
+  <"/**" ~["/"]> { input_stream.backup(1); } : IN_FORMAL_COMMENT
+|
+  "/*" : IN_MULTI_LINE_COMMENT
+}
+
+<IN_SINGLE_LINE_COMMENT>
+SPECIAL_TOKEN :
+{
+  <SINGLE_LINE_COMMENT: "\n" | "\r" | "\r\n" > : DEFAULT
+}
+
+<IN_FORMAL_COMMENT>
+SPECIAL_TOKEN :
+{
+  <FORMAL_COMMENT: "*/" > : DEFAULT
+}
+
+<IN_MULTI_LINE_COMMENT>
+SPECIAL_TOKEN :
+{
+  <MULTI_LINE_COMMENT: "*/" > : DEFAULT
+}
+
+<IN_SINGLE_LINE_COMMENT,IN_FORMAL_COMMENT,IN_MULTI_LINE_COMMENT>
+MORE :
+{
+  < ~[] >
+}
+
+/* RESERVED WORDS AND LITERALS */
+
+TOKEN :
+{
+  < ABSTRACT: "abstract" >
+| < ASSERT: "assert" >
+| < BOOLEAN: "boolean" >
+| < BREAK: "break" >
+| < BYTE: "byte" >
+| < CASE: "case" >
+| < CATCH: "catch" >
+| < CHAR: "char" >
+| < CLASS: "class" >
+| < CONST: "const" >
+| < CONTINUE: "continue" >
+| < _DEFAULT: "default" >
+| < DIST: "dist" >
+| < DO: "do" >
+| < DOUBLE: "double" >
+| < ELSE: "else" >
+// | < ENUM: "enum" > Add back in for 1.5 style enums
+| < EXTENDS: "extends" >
+| < FALSE: "false" >
+| < FINAL: "final" >
+| < FINALLY: "finally" >
+| < FLOAT: "float" >
+| < FOR: "for" >
+| < GOTO: "goto" >
+| < IF: "if" >
+| < IN: "in" >
+| < IMPLEMENTS: "implements" >
+| < IMPORT: "import" >
+| < INSTANCEOF: "instanceof" >
+| < INT: "int" >
+| < INTERFACE: "interface" >
+| < LONG: "long" >
+| < NATIVE: "native" >
+| < NEW: "new" >
+| < NULL: "null" >
+| < PACKAGE: "package">
+| < PRIVATE: "private" >
+| < PROTECTED: "protected" >
+| < PUBLIC: "public" >
+| < RETURN: "return" >
+| < SHORT: "short" >
+| < STATIC: "static" >
+| < STRICTFP: "strictfp" >
+| < SUPER: "super" >
+| < SWITCH: "switch" >
+| < SYNCHRONIZED: "synchronized" >
+| < THIS: "this" >
+| < THROW: "throw" >
+| < THROWS: "throws" >
+| < TRANSIENT: "transient" >
+| < TRUE: "true" >
+| < TRY: "try" >
+| < VOID: "void" >
+| < VOLATILE: "volatile" >
+| < WHILE: "while" >
+}
+
+/* LITERALS */
+
+TOKEN :
+{
+  < INTEGER_LITERAL:
+        <JAVA_DECIMAL_LITERAL> (["l","L"])?
+      | <JAVA_HEX_LITERAL> (["l","L"])?
+      | <JAVA_OCTAL_LITERAL> (["l","L"])?
+      | <VERILOG_LITERAL>
+  >
+|
+  < #BIN_LITERAL: ["0"-"1","x","X","z","Z","_"] >
+|
+  < #JAVA_DECIMAL_LITERAL: ["1"-"9","_"] (["0"-"9","_"])* >
+|
+  < #HEX_LITERAL: ["0"-"9","a"-"f","A"-"F","x","X","z","Z","_"] >
+|
+  < #JAVA_HEX_LITERAL: "0" ["x","X"] (<HEX_LITERAL>)* >
+|
+  < #OCTAL_LITERAL: ["0"-"7","x","X","z","Z","_"] >
+|
+  < #JAVA_OCTAL_LITERAL: "0" (<OCTAL_LITERAL>)* >
+|
+  < #VERILOG_LITERAL: (<JAVA_DECIMAL_LITERAL>)? "'"
+        (
+            ["b","B"] (<BIN_LITERAL>)+
+        |   ["o","O"] (<OCTAL_LITERAL>)+
+        |   ["d","D"] (<JAVA_DECIMAL_LITERAL>)+
+        |   ["h","H"] (<HEX_LITERAL>)+
+        )
+  >
+|
+  < FLOATING_POINT_LITERAL:
+        (["0"-"9"])+ "." (["0"-"9"])* (<EXPONENT>)? (["f","F","d","D"])?
+      | "." (["0"-"9"])+ (<EXPONENT>)? (["f","F","d","D"])?
+      | (["0"-"9"])+ <EXPONENT> (["f","F","d","D"])?
+      | (["0"-"9"])+ (<EXPONENT>)? ["f","F","d","D"]
+  >
+|
+  < #EXPONENT: ["e","E"] (["+","-"])? (["0"-"9"])+ >
+|
+  < CHARACTER_LITERAL:
+      "'"
+      (   (~["'","\\","\n","\r"])
+        | ("\\"
+            ( ["n","t","b","r","f","\\","'","\""]
+            | ["0"-"7"] ( ["0"-"7"] )?
+            | ["0"-"3"] ["0"-"7"] ["0"-"7"]
+            )
+          )
+      )
+      "'"
+  >
+|
+  < STRING_LITERAL:
+      "\""
+      (   (~["\"","\\","\n","\r"])
+        | ("\\"
+            ( ["n","t","b","r","f","\\","'","\""]
+            | ["0"-"7"] ( ["0"-"7"] )?
+            | ["0"-"3"] ["0"-"7"] ["0"-"7"]
+            )
+          )
+      )*
+      "\""
+  >
+}
+
+/* IDENTIFIERS */
+
+TOKEN :
+{
+  < IDENTIFIER: <LETTER> (<LETTER>|<DIGIT>)* >
+|
+  < #LETTER:
+      [
+       "\u0024",
+       "\u0041"-"\u005a",
+       "\u005f",
+       "\u0061"-"\u007a",
+       "\u00c0"-"\u00d6",
+       "\u00d8"-"\u00f6",
+       "\u00f8"-"\u00ff",
+       "\u0100"-"\u1fff",
+       "\u3040"-"\u318f",
+       "\u3300"-"\u337f",
+       "\u3400"-"\u3d2d",
+       "\u4e00"-"\u9fff",
+       "\uf900"-"\ufaff"
+      ]
+  >
+|
+  < #DIGIT:
+      [
+       "\u0030"-"\u0039",
+       "\u0660"-"\u0669",
+       "\u06f0"-"\u06f9",
+       "\u0966"-"\u096f",
+       "\u09e6"-"\u09ef",
+       "\u0a66"-"\u0a6f",
+       "\u0ae6"-"\u0aef",
+       "\u0b66"-"\u0b6f",
+       "\u0be7"-"\u0bef",
+       "\u0c66"-"\u0c6f",
+       "\u0ce6"-"\u0cef",
+       "\u0d66"-"\u0d6f",
+       "\u0e50"-"\u0e59",
+       "\u0ed0"-"\u0ed9",
+       "\u1040"-"\u1049"
+      ]
+  >
+}
+
+/* SEPARATORS */
+
+TOKEN :
+{
+  < LPAREN: "(" >
+| < RPAREN: ")" >
+| < LBRACE: "{" >
+| < RBRACE: "}" >
+| < LBRACKET: "[" >
+| < RBRACKET: "]" >
+| < SEMICOLON: ";" >
+| < COMMA: "," >
+| < DOT: "." >
+| < AT: "@" >
+}
+
+/* OPERATORS */
+
+TOKEN :
+{
+ < DIST_EACH: ":=" >
+| < DIST_ACROSS: ":/" >
+| < IMPLICATION: "=>" >
+| < ASSIGN: "=" >
+| < LT: "<" >
+| < BANG: "!" >
+| < TILDE: "~" >
+| < HOOK: "?" >
+| < COLON: ":" >
+| < EQ: "==" >
+| < LE: "<=" >
+| < GE: ">=" >
+| < NE: "!=" >
+| < SC_OR: "||" >
+| < SC_AND: "&&" >
+| < INCR: "++" >
+| < DECR: "--" >
+| < PLUS: "+" >
+| < MINUS: "-" >
+| < STAR: "*" >
+| < SLASH: "/" >
+| < BIT_AND: "&" >
+| < BIT_OR: "|" >
+| < XOR: "^" >
+| < BIT_NAND: "&~" >
+| < BIT_NOR: "|~" >
+| < XNOR: "^~" >
+| < REM: "%" >
+| < LSHIFT: "<<" >
+| < PLUSASSIGN: "+=" >
+| < MINUSASSIGN: "-=" >
+| < STARASSIGN: "*=" >
+| < SLASHASSIGN: "/=" >
+| < ANDASSIGN: "&=" >
+| < ORASSIGN: "|=" >
+| < XORASSIGN: "^=" >
+| < REMASSIGN: "%=" >
+| < LSHIFTASSIGN: "<<=" >
+| < RSIGNEDSHIFTASSIGN: ">>=" >
+| < RUNSIGNEDSHIFTASSIGN: ">>>=" >
+| < ELLIPSIS: "..." >
+}
+
+/* >'s need special attention due to generics syntax. */
+TOKEN :
+{
+  < RUNSIGNEDSHIFT: ">>>" >
+  {
+     matchedToken.kind = GT;
+     ((Token.GTToken)matchedToken).realKind = RUNSIGNEDSHIFT;
+     input_stream.backup(2);
+  }
+| < RSIGNEDSHIFT: ">>" >
+  {
+     matchedToken.kind = GT;
+     ((Token.GTToken)matchedToken).realKind = RSIGNEDSHIFT;
+     input_stream.backup(1);
+  }
+| < GT: ">" >
+}
+
+
+/*********************************************************
+ * THE JOVE CONSTRAINT LANGUAGE GRAMMAR STARTS HERE *
+ *********************************************************/
+
+ConsConstraint Constraint():
+{
+	ConsExpression expr;
+	constraint = new ConsConstraint(schema, new JavaName("bjalla", null, null));
+}
+{
+  ( expr = Expression() ";" { constraint.addExpr(expr); } )*
+  <EOF>
+  { return constraint; }
+}
+
+/*
+ * Expression syntax follows.
+ */
+
+ConsExpression Expression():
+{ ConsExpression expr; }
+{
+  expr = ConditionalExpression()
+
+  { return expr; }
+}
+
+void AssignmentOperator():
+{ if(true) throw new RuntimeException("AssignmentOperators are not allowed in constraints"); }
+{
+  "=" | "*=" | "/=" | "%=" | "+=" | "-=" | "<<=" | ">>=" | ">>>=" | "&=" | "^=" | "|="
+}
+
+ConsExpression ConditionalExpression():
+{ ConsExpression expr; }
+{
+  expr = ImplicationExpression()
+    [ "?" Expression() ":" Expression()
+        {throw new RuntimeException("Conditional \"a ? b :c \" notation is not allowed in constraints");}
+    ]
+
+  { return expr; }
+}
+
+ConsExpression ImplicationExpression():
+{ ConsExpression expr1, expr2, impExpr; ConsConstraintSet cSet = new ConsConstraintSet(schema); }
+{
+    expr1 = ConditionalOrExpression()
+    [
+    	<IMPLICATION>
+    	(
+    		expr2 = ConditionalOrExpression()
+    	|
+    		"{" (expr2 = Expression() ";"
+    			{
+    				cSet.addExpr(expr2);
+    			}
+    			)*
+    		"}"
+    		{ expr2 = cSet; }
+    	)
+    	{
+    		impExpr = new ConsImplication(expr1, expr2);
+			expr1 = impExpr;
+    	}
+	]
+
+	{ return expr1; }
+}
+
+ConsExpression ConditionalOrExpression():
+{ ConsExpression expr1, expr2; }
+{
+  expr1 = ConditionalAndExpression()
+  	(
+  		"||" expr2 = ConditionalAndExpression()
+  		{
+  			ConsExpression orExpr = new ConsConditionalOr(expr1, expr2);
+  			expr1 = orExpr;
+  		}
+  	)*
+  	{ return expr1; }
+}
+
+ConsExpression ConditionalAndExpression():
+{ ConsExpression expr1, expr2; }
+{
+  expr1 = InclusiveOrExpression()
+  	(
+  		"&&" expr2 = InclusiveOrExpression()
+  		{
+  			ConsExpression andExpr = new ConsConditionalAnd(expr1, expr2);
+  			expr1 = andExpr;
+  		}
+  	)*
+  	{ return expr1; }
+}
+
+ConsExpression InclusiveOrExpression():
+{ ConsExpression expr1, expr2; }
+{
+  expr1 = ExclusiveOrExpression()
+  	(
+		<BIT_OR> expr2 = ExclusiveOrExpression()
+  		{
+  			ConsExpression orExpr = new ConsOr(expr1, expr2);
+
+  			expr1 = orExpr;
+  		}
+  	)*
+  	{ return expr1; }
+}
+
+ConsExpression ExclusiveOrExpression():
+{ ConsExpression expr1, expr2; }
+{
+  expr1 = AndExpression()
+  	(
+		<XOR> expr2 = AndExpression()
+  		{
+  			ConsExpression xorExpr = new ConsXor(expr1, expr2);
+
+  			expr1 = xorExpr;
+  		}
+  	)*
+  	{ return expr1; }
+}
+
+ConsExpression AndExpression():
+{ ConsExpression expr1, expr2; }
+{
+  expr1 = EqualityExpression()
+  	(
+  		<BIT_AND> expr2 = EqualityExpression()
+  		{
+  			ConsExpression andExpr = new ConsAnd(expr1, expr2);
+
+  			expr1 = andExpr;
+  		}
+  	)*
+  	{ return expr1; }
+}
+
+ConsExpression EqualityExpression():
+{ ConsExpression expr1, expr2; boolean notEq = false; }
+{
+  expr1 = InstanceOfExpression()
+  	(
+  		( "==" { notEq = false; }| "!=" { notEq = true; } ) expr2 = InstanceOfExpression()
+  		{
+  			ConsExpression eqExpr = null;
+  			if (notEq) {
+  				eqExpr = new ConsNotEqual(expr1, expr2);
+  			}
+  			else {
+  				eqExpr = new ConsEqual(expr1, expr2);
+  			}
+  			expr1 = eqExpr;
+  		}
+  	)*
+  	{ return expr1; }
+}
+
+
+ConsExpression InstanceOfExpression():
+{ ConsExpression expr1; }
+{
+
+  expr1 = RelationalExpression()
+    [ "instanceof" Type()
+        { if(true) throw new RuntimeException("instanceof is not supoprted in constraints"); }
+    ]
+  { return expr1; }
+}
+
+ConsExpression RelationalExpression():
+{ ConsExpression expr1, expr2; Class c = null; boolean not_in = false; List ranges; Iterator iter; }
+{
+  expr1 = ShiftExpression()
+  (
+  	(
+  		"<"  { c = ConsLess.class; }
+    |
+       	">"  { c = ConsGreater.class; }
+    |
+       	"<=" { c = ConsLessOrEqual.class; }
+    |
+       	">=" { c = ConsGreaterOrEqual.class; }
+    )
+    expr2 = ShiftExpression()
+    {
+        ConsExpression relExpr = null;
+        if (c == ConsLess.class) relExpr = new ConsLess(expr1, expr2);
+        else if (c == ConsLessOrEqual.class) relExpr = new ConsLessOrEqual(expr1, expr2);
+        else if (c == ConsGreater.class) relExpr = new ConsGreater(expr1, expr2);
+        else if (c == ConsGreaterOrEqual.class) relExpr = new ConsGreaterOrEqual(expr1, expr2);
+        else assert(false); // internal error
+
+        expr1 = relExpr;
+    }
+  |
+  	( <BANG> { not_in = true; }  | { not_in = false; } ) <IN>
+  	ranges = range_list()
+    {
+    	ConsSetOperation inSet = null;
+    	if (not_in) {
+    		inSet = new ConsNotInSet(expr1);
+    	}
+    	else {
+    		inSet = new ConsInSet(expr1);
+    	}
+
+        iter = ranges.iterator();
+        while(iter.hasNext()) {
+        	inSet.addMember((ConsSetMember)iter.next());
+        }
+
+        expr1 = inSet;
+    }
+  |
+	<DIST> ranges = dist_range_list()
+	{
+    	ConsSetOperation distSet = new ConsDistSet(expr1);
+        iter = ranges.iterator();
+        while(iter.hasNext()) {
+        	distSet.addMember((ConsSetMember)iter.next());
+        }
+
+        expr1 = distSet;
+	}
+  )*
+  { return expr1; }
+}
+
+ConsExpression ShiftExpression():
+{ ConsExpression expr1, expr2; Class c = null; }
+{
+  expr1 = AdditiveExpression()
+  	( (
+  		"<<" { c = ConsLeftShift.class; }
+  	  |
+  	  	RSIGNEDSHIFT()  { c = ConsSignedRightShift.class; }
+  	  |
+  	  	RUNSIGNEDSHIFT() { c = ConsUnsignedRightShift.class; }
+  	  )
+  	  expr2 = AdditiveExpression()
+  	  {
+  	  	ConsExpression shiftExpr = null;
+  	  	if (c == ConsLeftShift.class) {
+  	  		shiftExpr = new ConsLeftShift(expr1, expr2);
+  	  	}
+  	  	else if(c == ConsSignedRightShift.class) {
+  	  		shiftExpr = new ConsSignedRightShift(expr1, expr2);
+  	  	}
+  	  	else if(c == ConsUnsignedRightShift.class){
+  	  		shiftExpr = new ConsUnsignedRightShift(expr1, expr2);
+  	  	}
+  	  	else {
+  	  		assert(false);
+  	  	}
+
+  	  	expr1 = shiftExpr;
+  	  }
+  	)*
+  	{ return expr1; }
+}
+
+ConsExpression AdditiveExpression():
+{ ConsExpression expr1, expr2; Class c = null; }
+{
+  expr1 = MultiplicativeExpression()
+  ( (
+  		"+" { c = ConsAdd.class; }
+  	|
+  		"-" { c = ConsSubtract.class; }
+  	)
+  	expr2 = MultiplicativeExpression()
+  	{
+  		ConsExpression addExpr = null;
+
+  		if (c == ConsAdd.class) {
+  			addExpr = new ConsAdd(expr1, expr2);
+  		}
+  		else if (c == ConsSubtract.class) {
+  			addExpr = new ConsSubtract(expr1, expr2);
+  		}
+  		else {
+  			assert(false); // internal error
+  		}
+
+  		expr1 = addExpr;
+  	}
+  )*
+  { return expr1; }
+}
+
+ConsExpression MultiplicativeExpression():
+{ ConsExpression expr1, expr2; Class c = null; }
+{
+  expr1 = UnaryExpression()
+  ( (
+  		"*" { c = ConsMultiply.class; }
+  	|
+  		"/" { c = ConsDivide.class; }
+  	|
+  		"%" { c = ConsModulo.class; }
+  	)
+  	expr2 = UnaryExpression()
+  	{
+  		ConsExpression multExpr = null;
+  		if (c == ConsMultiply.class) {
+  			multExpr = new ConsMultiply(expr1, expr2);
+  		}
+  		else if (c == ConsDivide.class) {
+  			multExpr = new ConsDivide(expr1, expr2);
+  		}
+  		else if (c == ConsModulo.class) {
+  			multExpr = new ConsModulo(expr1, expr2);
+  		}
+  		else {
+  			assert(false); // internal error
+  		}
+
+  		expr1 = multExpr;
+  	}
+  )*
+  { return expr1; }
+}
+
+ConsExpression UnaryExpression():
+{ ConsExpression expr = null; boolean sawMinus = false; }
+{
+	(
+		( "+" | "-" { sawMinus = true; } ) expr = UnaryExpression()
+		{
+			ConsExpression unaryExpr = expr;
+			if (sawMinus) {
+				unaryExpr = new ConsUnaryMinus(expr);
+			}
+			expr = unaryExpr;
+		}
+	|
+  		PreIncrementExpression() // asserts in production
+	|
+		PreDecrementExpression() // asserts in production
+	|
+		expr = UnaryExpressionNotPlusMinus()
+	)
+	{ assert(expr != null); return expr; }
+}
+
+void PreIncrementExpression():
+{}
+{
+  "++" PrimaryExpression()
+    { throw new RuntimeException("pre-increment is not allowed in constraints"); }
+
+}
+
+void PreDecrementExpression():
+{}
+{
+  "--" PrimaryExpression()
+    { throw new RuntimeException("pre-decrement is not allowed in constraints"); }
+}
+
+ConsExpression UnaryExpressionNotPlusMinus():
+{ ConsExpression expr = null; Class c = null; }
+{
+	(
+		( "~" { c = ConsBitwiseNot.class; }
+		| "!" { c = ConsLogicalNot.class; }
+		) expr = UnaryExpression()
+		{
+			ConsExpression opExpr = null;
+			if (c == ConsBitwiseNot.class) {
+				opExpr = new ConsBitwiseNot(expr);
+			}
+			else if (c == ConsLogicalNot.class) {
+				opExpr = new ConsLogicalNot(expr);
+			}
+			else {
+				assert(false); // internal error
+			}
+
+			expr = opExpr;
+		}
+	|
+		LOOKAHEAD( CastLookahead() )
+  		CastExpression()    // asserts in production
+	|
+  		expr = PostfixExpression()
+	)
+	{ assert(expr != null); return expr; }
+}
+
+// This production is to determine lookahead only.  The LOOKAHEAD specifications
+// below are not used, but they are there just to indicate that we know about
+// this.
+void CastLookahead():
+{ /* LOOKAHEAD ONLY. no actions to take with this */ }
+{
+  LOOKAHEAD(2)
+  "(" PrimitiveType()
+|
+  LOOKAHEAD("(" Type() "[")
+  "(" Type() "[" "]"
+|
+  "(" Type() ")" ( "~" | "!" | "(" | <IDENTIFIER> | "this" | "super" | "new" | Literal() )
+}
+
+ConsExpression PostfixExpression():
+{ ConsExpression expr; }
+{
+  expr = PrimaryExpression()
+    [ "++" | "--"
+        { if(true) throw new RuntimeException("post-increment/decrement are not allowed in constraints"); }
+    ]
+  { return expr; }
+}
+
+void CastExpression():
+{
+	// TBD: support casts
+	if(true) throw new RuntimeException("casts are not yet supported in constraints");
+}
+{
+  LOOKAHEAD("(" PrimitiveType())
+  "(" Type() ")" UnaryExpression()
+|
+  "(" Type() ")" UnaryExpressionNotPlusMinus()
+}
+
+ConsExpression PrimaryExpression():
+{ Object prefix = null; Object suffix = null; ConsExpression expr = null; String s = null; StringBuffer sb = new StringBuffer(""); }
+{
+	prefix = PrimaryPrefix()
+	{
+		if (prefix instanceof ConsExpression) {
+			expr = (ConsExpression)prefix;
+		}
+		else {
+			assert(prefix instanceof String);
+			s = (String)prefix;
+			sb.append(s);
+		}
+	}
+  	(
+  		LOOKAHEAD(2) suffix = PrimarySuffix()
+  		{
+  			s = (String)suffix;
+  			if (sb.length() > 0 && !s.startsWith("[")) {
+  				sb.append(".");
+  			}
+  			sb.append(s);
+  		}
+  	)*
+
+  {
+      if (expr == null)
+      {
+          // need to create this expression
+      	{
+		  try {
+		      expr = NameParser.getExpr(sb.toString(), mClass, constraint.getVarList());
+		  }
+		  catch(NoSuchFieldException e) {
+		      throw new ParseException(e.getMessage());
+		  }
+		  catch(IllegalAccessException e1) {
+		      throw new ParseException(e1.getMessage());
+		  }
+		}
+
+      }
+      assert(expr != null);
+      return expr;
+  }
+}
+
+// PrimaryPrefix might return a ConsExpression (if it sees a Literal())
+// or it might return a String if it sees a Name(). For this reason,
+// we just return an Object (which will be either a String or a ConsExpression
+// and let the PrimaryExpression() production figure things out
+Object PrimaryPrefix():
+{ ConsExpression expr = null; String name = null; Object prefix = null; Token t = null; }
+{
+	(
+		expr = Literal() { prefix = expr; }
+	|
+		"this" { name = "this"; prefix = name; }
+	|
+		"super" "." t = <IDENTIFIER> { name = "super." + t.image; prefix = name; }
+	|
+		"(" expr = Expression() { prefix = expr; } ")"
+	|
+		LOOKAHEAD( ResultType() "." "class" )
+		ResultType() "." "class" // asserts in production
+	|
+		name = Name() { prefix = name; }
+	)
+
+	{ assert(prefix != null); return prefix; }
+}
+
+// PrimarySuffix is used for the following:
+// 1. identifiers ending in ".this"
+// 2. array accesses "[<expr>]"
+// 3. method invocations "(<arg>, <arg>, ...)"
+// 4. member accesses that are qualified by 1-3 or a PrimaryPrefix
+
+Object PrimarySuffix():
+{ ConsExpression e; String s = null; Token t = null; Object obj = null; }
+{
+(
+  LOOKAHEAD(2)
+  "." "this" { s = "this"; obj = s; }
+|
+  LOOKAHEAD(3)
+  s = MemberSelector() { obj = s; }
+|
+  "[" e = Expression() "]" { s = "[" + e.toString() + "]"; obj = s; }
+|
+  "." t = <IDENTIFIER> { s = t.image; obj = s; }
+|
+  Arguments() // an excception is thrown in the Arguments() production
+)
+  { return obj; }
+}
+
+String MemberSelector():
+{ Token t = null; }
+{
+  // Uncomment for 1.5 support:
+  // "." TypeArguments() <IDENTIFIER>
+  // |
+  "." t = <IDENTIFIER>
+  { return t.image; }
+}
+
+ConsExpression Literal():
+{ ConsExpression expr; boolean b; Token t; }
+{
+	(
+	  t = <INTEGER_LITERAL>
+	  	{
+			if(t.image.matches("^[0-9]+'.*")) {
+             	// i tried to make t = <VERILOG_LITERAL> its own case, but couldn't
+             	// get it to work. TBD: don't use this string matching logic.
+             	expr = new ConsBitVectorLiteral(schema, new BitVector(t.image));
+            }
+            else {
+                // the parseInt/decode utilities in Integer/Long don't seem to
+                // handle things the way we'd like for strings like:
+                // parseInt("80000000", 16) for instance. so do our own thing
+                // and let BitVector work its magick.
+                boolean isLong = (t.image.endsWith("L") || t.image.endsWith("l"));
+                int negativeMultiplier = 1;
+
+                int radix = 10;
+                int firstChar = 0;
+                int lastChar = t.image.length();
+
+                if(t.image.startsWith("-")) {
+                    negativeMultiplier = -1;
+                    ++firstChar;
+                }
+
+                // determine radix (if non-decimal)
+                if(t.image.startsWith("0x", firstChar) || t.image.startsWith("0X", firstChar)) {
+                    radix = 16;
+                    firstChar += 2;
+                }
+                else if(t.image.startsWith("0", firstChar) && t.image.length() > 1) {
+                    radix = 8;
+                    ++firstChar;
+                }
+                
+                // if isLong, don't parse the trailing 'l' or 'L'
+                if(isLong)
+                {
+                	--lastChar;
+                }
+
+                String radixString = null;
+                if(radix == 8) {
+                    radixString = "o";
+                }
+                else if(radix == 10) {
+                    radixString = "d";
+                }
+                else if(radix == 16) {
+                    radixString = "h";
+                }
+                else {
+                    // unreachable code
+                    assert(false);
+                }
+
+                String widthRadix = "";
+                if(t.image.startsWith("'")) {
+                	// allow numbers of the form 'h80
+                    widthRadix = "32";
+                }
+                else {
+                    widthRadix = (isLong ? "64'" : "32'") + radixString;
+                }
+                BitVector vector = new BitVector(widthRadix + t.image.substring(firstChar, lastChar));
+
+                if(isLong) {
+                    // remove the long specifier
+                    --lastChar;
+                    expr = new ConsLongLiteral(schema, vector.longValue() * negativeMultiplier);
+                }
+                else {
+                    expr = new ConsIntLiteral(schema, vector.intValue() * negativeMultiplier);
+                }
+			}
+	  	}
+	|
+  	  t = <FLOATING_POINT_LITERAL> { expr = new ConsFloatLiteral(schema, Float.parseFloat(t.image)); }
+	|
+  	  t = <CHARACTER_LITERAL> { expr = new ConsCharLiteral(schema, t.image.charAt(0)); }
+	|
+      t = <STRING_LITERAL> { expr = new ConsStringLiteral(schema, t.image); }
+	|
+      b = BooleanLiteral() { expr = new ConsBooleanLiteral(schema, b); }
+	|
+      NullLiteral() { expr = new ConsNullLiteral(schema); }
+  	)
+
+  	{ return expr; }
+}
+
+boolean BooleanLiteral():
+{ boolean b = true; }
+{
+	(
+		"true" { b = true; }
+	|
+		"false" { b = false; }
+  	)
+
+  	{ return b; }
+}
+
+void NullLiteral():
+{ /* nothing to do here, handled in Literal() */ }
+{
+  "null"
+}
+
+List range_list() :
+{ List ranges = Collections.EMPTY_LIST; ConsSetMember member; }
+{
+    <LBRACE>
+    member = range() { ranges = new ArrayList(); ranges.add(member); }
+    ( <COMMA> member = range() { ranges.add(member); } )*
+    <RBRACE>
+
+    { return ranges; }
+}
+
+ConsSetMember range() :
+{ ConsExpression lo, hi = null; boolean isRange = false; }
+{
+    lo = ConditionalExpression()
+    [ <COLON> hi = ConditionalExpression() {isRange = true; } ]
+
+    {
+    	ConsSetMember member = null;
+    	if (isRange) {
+    		assert(hi != null);
+    		member = new ConsSetRange(lo, hi);
+    	}
+    	else {
+    		member = new ConsSetValue(lo);
+    	}
+
+    	return member;
+    }
+}
+
+List dist_range_list() :
+{ List ranges = Collections.EMPTY_LIST; ConsSetMember member; }
+{
+    <LBRACE>
+    member = dist_range() { ranges = new ArrayList(); ranges.add(member); }
+    ( <COMMA> member = dist_range() { ranges.add(member); } )*
+    <RBRACE>
+
+    { return ranges; }
+}
+
+ConsSetMember dist_range() :
+{
+	ConsSetMember range;
+    ConsExpression weightExpr = null;
+    boolean weightPerItem = false;
+}
+{
+     range = range()
+     [
+        (
+            <DIST_EACH> { weightPerItem = true; }
+        |
+            <DIST_ACROSS> { weightPerItem = false; }
+        )
+        weightExpr = ConditionalExpression()
+     ]
+     {
+     	assert(weightExpr != null);
+     	range.setWeight(weightExpr, weightPerItem);
+     	return range;
+     }
+}
+
+
+void Arguments():
+{ if(true) throw new RuntimeException("Method calls are not allowed in constraints"); }
+{
+  "(" [ ArgumentList() ] ")"
+}
+
+void ArgumentList():
+{ /* USED by Arguments(), which throws an exception */ }
+{
+  Expression() ( "," Expression() )*
+}
+
+/* We use productions to match >>>, >> and > so that we can keep the
+ * type declaration syntax with generics clean
+ */
+
+void RUNSIGNEDSHIFT():
+{ /* handled in RelationalExpression() */ }
+{
+  ( LOOKAHEAD({ getToken(1).kind == GT &&
+                ((Token.GTToken)getToken(1)).realKind == RUNSIGNEDSHIFT} )
+   ">" ">" ">"
+  )
+}
+
+void RSIGNEDSHIFT():
+{ /* handled in RelationalExpression() */ }
+{
+  ( LOOKAHEAD({ getToken(1).kind == GT &&
+                ((Token.GTToken)getToken(1)).realKind == RSIGNEDSHIFT} )
+  ">" ">"
+  )
+}
+
+/*
+ * Type, name and expression syntax follows.
+ */
+void Type():
+{ if(true) throw new RuntimeException("Type is not allowed in constraints"); }
+{
+   LOOKAHEAD(2) ReferenceType()
+ |
+   PrimitiveType()
+
+    { throw new RuntimeException("If you have a valid reason for using a type in the constraint, contact nall@newisys.com"); }
+}
+
+void ReferenceType():
+{ if(true) throw new RuntimeException("ReferenceType is not allowed in constraints"); }
+{
+   PrimitiveType() ( LOOKAHEAD(2) "[" "]" )+
+  |
+   ( ClassOrInterfaceType() ) ( LOOKAHEAD(2) "[" "]" )*
+}
+
+void ClassOrInterfaceType():
+{ if(true) throw new RuntimeException("ClassOrInterfaceType is not allowed in constraints"); }
+{
+  <IDENTIFIER> [ LOOKAHEAD(2) TypeArguments() ]
+  ( LOOKAHEAD(2) "." <IDENTIFIER> [ LOOKAHEAD(2) TypeArguments() ] )*
+}
+
+void TypeArguments():
+{ if(true) throw new RuntimeException("TypeArguments is not allowed in constraints"); }
+{
+   "<" TypeArgument() ( "," TypeArgument() )* ">"
+}
+
+void TypeArgument():
+{ if(true) throw new RuntimeException("TypeArgument is not allowed in constraints"); }
+{
+   ReferenceType()
+ |
+   "?" [ WildcardBounds() ]
+}
+
+void WildcardBounds():
+{ if(true) throw new RuntimeException("WildcardBounds is not allowed in constraints"); }
+{
+   "extends" ReferenceType()
+ |
+   "super" ReferenceType()
+}
+
+
+void PrimitiveType():
+{ if(true) throw new RuntimeException("PrimitiveType is not allowed in constraints"); }
+{
+  "boolean"
+|
+  "char"
+|
+  "byte"
+|
+  "short"
+|
+  "int"
+|
+  "long"
+|
+  "float"
+|
+  "double"
+}
+
+void ResultType():
+{ if(true) throw new RuntimeException("ResultType is not allowed in constraints"); }
+{
+  "void"
+|
+  Type()
+}
+
+String Name():
+/*
+ * A lookahead of 2 is required below since "Name" can be followed
+ * by a ".*" when used in the context of an "ImportDeclaration".
+ */
+{ ConsExpression expr; Token t; StringBuffer sb = new StringBuffer(""); }
+{
+  t = <IDENTIFIER> { sb.append(t.image); }
+
+  ( LOOKAHEAD(2) "." t = <IDENTIFIER>
+  	// TBD: support qualified names
+  	{ sb.append("." + t.image); }
+  )*
+
+  { return sb.toString(); }
+}
+
+void NameList():
+{ if (true) throw new RuntimeException("NameList is not allowed in constraints"); }
+{
+  Name() ( "," Name() )*
+}

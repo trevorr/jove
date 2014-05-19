@@ -1,0 +1,7 @@
+$pli4j_init check=pli4j_init call=pli4j_init acc=r,cbk,frc:%TASK
+$pli4j_register_object call=pli4j_register_object
+$pli4j_register_signal call=pli4j_register_signal
+$pli4j_register_verilog_task call=pli4j_register_verilog_task
+$pli4j_call call=pli4j_call acc=rw,cbk,frc:%TASK
+$pli4j_start call=pli4j_start misc=pli4j_misctf acc=rw,cbk,frc:%TASK
+$pli4j_destroy call=pli4j_destroy acc=rw,cbk,frc:%TASK

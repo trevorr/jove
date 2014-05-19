@@ -1,0 +1,36 @@
+package testpkg.binds;
+
+import testpkg.ports.*;
+import testpkg.intfs.*;
+
+bind MyBind is MyPort
+{
+    default interface MyIntf;
+
+    a sig1;
+    b sig2;
+    c sig3;
+    d sig4;
+    e sig5;
+    f sig6;
+    q { sig1[3:0], sig3 };
+    x MyIntf2.x;
+}
+
+bind RxBind is RxPort
+{
+    default interface RxIntf;
+
+    clk clk;
+    ctl ctl;
+    data data;
+}
+
+bind TxBind is TxPort
+{
+    default interface TxIntf;
+
+    clk clk;
+    ctl ctl;
+    data data;
+}

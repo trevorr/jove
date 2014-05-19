@@ -1,0 +1,115 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+<title>Jove - The Open Verification Environment for the Java (TM) Platform</title>
+</head>
+
+<body>
+<h1>Jove Frequently Asked Questions (FAQ)</h1>
+<p>Copyright &copy; 2005 Trevor Robinson &lt;<img src="TrevorEmail.png" alt="Trevor's email" width="146" height="14" border="0" />&gt;. Licensed under the <a href="http://opensource.org/licenses/osl-2.0.php">Open Software License version 2.0</a>.</p>
+<p>Product and company names mentioned herein may be trademarks of their respective owners. Java is a trademark or registered trademark of Sun Microsystems, Inc. in the U.S. or other countries.</p>
+<p>Last updated 10/19/05</p>
+<h2>Contents</h2>
+<ol>
+  <li><a href="#what_is">What is Jove?</a></li>
+  <li><a href="#why_is">Why is Jove?</a></li>
+  <li><a href="#who_wrote">Who wrote Jove?</a></li>
+  <li><a href="#status">What is the status of Jove?</a>
+    <ol>
+      <li><a href="#platforms">What platforms does Jove support?</a></li>
+      <li><a href="#simulators">What Verilog simulators does Jove support?</a></li>
+    </ol>
+  </li>
+  <li><a href="#license">How is Jove licensed?</a></li>
+  <li><a href="#logo">Does Jove have an official logo?</a></li>
+</ol>
+<h2><a name="what_is">What is Jove?</a></h2>
+<p>Jove is a set of Java APIs and tools to enable Verilog hardware design verification using the Java programming language. It contains components that accomplish the following:</p>
+<ul>
+  <li>Verilog simulator interaction (via PLI 2.0, aka VPI)</li>
+  <li>standalone behavioral simulation (i.e. a discrete event simulator)</li>
+  <li>thread and event synchronization</li>
+  <li>design verification abstractions (e.g. clock-relative signal access, mailboxes, semaphores)</li>
+  <li>constraint-based randomization</li>
+  <li>Verilog shell generation</li>
+</ul>
+<p>In other words, it provides facilities similar to Synopsys Vera, Cadence Testbuilder, and (formerly) Verisity Specman.</p>
+<h2><a name="why_is">Why is Jove?</a></h2>
+<p>Verification has become a very software-intensive task, and Jove is intended to leverage Java's strengths as a robust software engineering environment to deal with very large, complex verification codebases.</p>
+<ul>
+  <li>Jove leverages the Java language, a standard, well-defined, high-productivity object-oriented programming language. Alternative tools introduce proprietary languages, or use more complex, less productive languages, like C/C++ or Perl. </li>
+  <li>Jove leverages Java libraries, including the extensive Java runtime library, the JUnit test framework, and thousands of third-party libraries. Java libraries tend to be much easier to integrate than libraries in earlier mature languages, such as C/C++. </li>
+  <li>Jove leverages Java tools, such as Javadoc and Eclipse. The Eclipse IDE, for instance, provides Jove users with a free, powerful GUI debugger.</li>
+  <li>Jove leverages Java Virtual Machine technology, arguably the most mature, high-performance VM technology available, with performance rivaling compiled languages in most cases.</li>
+  <li>Jove leverages the experience of a software-oriented team executing the complete lifecycle of a very complex ASIC verification project. It addresses the limitations encountered using other tools during that project.</li>
+</ul>
+<h2><a name="who_wrote">Who wrote Jove?</a></h2>
+<p>Jove was created at <a href="http://www.newisys.com/">Newisys, Inc.</a> The project was conceived and architected by Trevor Robinson &lt;<img src="TrevorEmail.png" alt="Trevor's email" width="146" height="14" border="0" />&gt;. Jon Nall &lt;<img src="JonEmail.png" alt="Jon's email" width="171" height="14" />&gt; implemented the random solver and BitVector components, and performed most of the bring-up and testing. Scott Diesing &lt;<img src="ScottEmail.png" alt="Scott's email" width="158" height="14" />&gt; implemented the behavioral simulator. Mark Davis &lt;<img src="MarkEmail.png" alt="Mark's email" width="92" height="14" />&gt; managed the project. Jove also includes some third-party software, listed <a href="#license">below</a>.</p>
+<h2><a name="status">What is the status of Jove?</a></h2>
+<p>Jove should be considered relatively stable and mature (though like most free software, it carries no warranties of any kind; see the <a href="#license">license</a> for details). It has been in production use for the verification of <a href="http://www.newisys.com/products/horus_external_white_paper_final.pdf">Newisys' Horus ASIC</a>, running a verification codebase of over 400K lines of Java source, since February 2005 and has proven exceptionally stable.</p>
+<h3><a name="platforms">What platforms does Jove support?</a></h3>
+<p>Most of Jove is written in the <a href="http://java.sun.com/j2se/1.5.0/">Java 5.0</a> language, and should therefore work on any platform with a Java 5.0 JDK. Specifically, Java-only behavioral simulations should work on any Java platform. However, the Verilog simulator support is written in C++ and therefore tends to need tweaking to work on new platforms. The table below lists platforms that Jove has been tested on so far.</p>
+<table width="80%" border="1" align="center" cellpadding="2">
+  <tr>
+    <th>Operating System</th>
+    <th>Processor Architecture</th>
+    <th>Supported Simulators </th>
+  </tr>
+  <tr>
+    <td> Red Hat Enterprise Linux AS 3</td>
+    <td>Intel x86</td>
+    <td><a href="#vcs">Synopsys VCS</a> (32 and 64 bit versions), <a href="#cver">GPL Cver</a></td>
+  </tr>
+  <tr>
+    <td>Microsoft Windows XP + <a href="http://www.cygwin.com/">Cygwin</a> 1.5.18-1</td>
+    <td>Intel x86</td>
+    <td><a href="#cver">GPL Cver</a></td>
+  </tr>
+  <tr>
+    <td>Apple Mac OS X 10.4.2 + <a href="http://docs.info.apple.com/article.html?artnum=301073">J2SE 5.0 Release 1</a></td>
+    <td>PowerPC</td>
+    <td><a href="#cver">GPL Cver</a></td>
+  </tr>
+</table>
+<h3><a name="simulators">What Verilog simulators does Jove support?</a></h3>
+<p>Jove is designed to be easily ported to any simulator supporting PLI 2.0 / VPI. It has been tested with the simulators listed in the table below. We hope that support for other simulators will be forthcoming.</p>
+<table width="80%" border="1" align="center" cellpadding="2">
+  <tr>
+    <th nowrap="nowrap">Simulator</th>
+    <th nowrap="nowrap">Status</th>
+    <th>Notes</th>
+  </tr>
+  <tr>
+    <td nowrap="nowrap"><a name="vcs" id="vcs"></a><a href="http://www.synopsys.com/products/simulation/simulation.html">Synopsys VCS</a></td>
+    <td nowrap="nowrap">Extensively tested</td>
+    <td>Jove exposed various bugs in the VCS VPI implementation, most of which have been fixed in recent versions, so using the latest version is recommended.</td>
+  </tr>
+  <tr>
+    <td nowrap="nowrap"><a name="cver" id="cver"></a><a href="http://www.pragmatic-c.com/gpl-cver/">Pragmatic C GPL Cver</a></td>
+    <td nowrap="nowrap">Minimal testing</td>
+    <td>Tested with <a href="http://www.pragmatic-c.com/gpl-cver/"></a> version 2.11a, which requires a <a href="cver-2.11a-startofsimtime.patch">patch</a> to fix a bug in setting Start of Sim Time callbacks.</td>
+  </tr>
+</table>
+<h2><a name="license">How is Jove licensed?</a></h2>
+<p>Jove is licensed under the <a href="http://opensource.org/licenses/osl-2.0.php">Open Software License 2.0</a> (see LICENSE-osl-2.0.txt in the distribution). It also includes the following third-party software:</p>
+<ul>
+  <li>PLI4J - A Java &trade; Interface to the Verilog PLI<br />
+Copyright &copy; 2003 Trevor A. Robinson<br />
+  Licensed under the <a href="http://opensource.org/licenses/afl-2.0.php">Academic Free License 2.0</a> (see LICENSE-afl-2.0.txt).</li>
+  <li><a href="http://javabdd.sourceforge.net/">JavaBDD</a><br />
+  Copyright &copy; 2003 John Whaley &lt;jwhaley@alum.mit.edu&gt;<br />
+  Licensed under the <a href="http://www.gnu.org/licenses/lgpl.html">GNU Lesser General Public License</a> (see LICENSE-lgpl.txt).</li>
+  <li>Generated code from JavaCC &trade;<br />
+  Copyright &copy; 2003 Sun Microsystems, Inc. All Rights Reserved.<br />
+  Licensed under a <a href="http://www.opensource.org/licenses/bsd-license.html">BSD-style license</a> (see LICENSE-javacc.txt).</li>
+</ul>
+<h2><a name="logo">Does Jove have an official logo?</a></h2>
+<p>Yes. There is a large logo:</p>
+<p><img style="margin-left: 40px;" src="jove-logo.png" alt="Large Logo" width="426" height="129" /></p>
+<p>and a small logo:</p>
+<p><img style="margin-left: 40px;" src="jove-logo-small.png" alt="Small Logo" width="144" height="32" /></p>
+<p>You may use these logos in product description and promotional material <strong>IF and ONLY IF</strong> such use can in no way be interpreted as anything other than an attribution. Using the Jove name and artwork in a manner that implies endorsement of a product or service is <strong>strictly forbidden</strong>.</p>
+<p>Additionally, the large logo makes reference to the Java trademark owned by Sun Microsystems. According to the <a href="http://www.sun.com/policies/trademarks/">Sun Trademark and Logo Usage Requirements</a>, its ownership must be attributed in a trademark legend &quot;in a location typically used for copyright and other legal notices.&quot; According to their abbreviated legend template, the text would be &quot;Java is a trademark or registered trademark of Sun Microsystems, Inc. in the U.S. or other countries.&quot; We recommend that you consult their requirements document before referencing any of their trademarks.</p>
+</body>
+</html>

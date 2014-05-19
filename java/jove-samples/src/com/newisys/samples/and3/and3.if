@@ -1,0 +1,65 @@
+// The package specifier defines the package in which the generated source
+// will be placed
+package com.newisys.samples.and3;
+
+/* multiline comments are supported
+ * in this file format
+ */
+
+// Defines the interface to the DUT
+interface And3Interface
+{
+	// Setup the default values. All verilog signals will be prefixed
+	// with "dut." All inputs will default to being sampled on the positive
+	// edge of the clock with a skew of -1. All outputs will default to being
+	// driven on the positive edge of the clock with a skew of 1.
+    default module and3_test_top.dut;
+    default sample(posedge, -1);
+    default drive(posedge, 1);
+
+    clock clk;
+
+	// Signal directions are relative to the testbench. Therefore the inputs to
+	// the DUT are declared as outputs here.
+    output i1;
+    output i2;
+    output i3;
+
+    input o1;
+}
+
+// The port interface. This section declares the names that will be used by
+// the testbench. Direction is from the perspective of the testbench, so
+// datain refers to the output of the DUT.
+port And3Port
+{
+    input clk;
+    input datain;
+    output dataout;
+}
+
+// A binding of signals to a port.
+bind And3Bind is And3Port
+{
+	// Default to using the signals defined in And3Interface above.
+    default interface And3Interface;
+
+    clk clk;
+    
+    // Signals can be concatenated in the bind. When the testbench drives
+    // dataout, dataout[2] maps to i1, dataout[1] maps to i2, and dataout[0]
+    // maps to i3.
+    dataout {i1, i2, i3};
+    datain o1;
+}
+
+
+// An example HDL task to show the state of the DUT	
+hdl_task dispState () and3_test_top.dut.dispState;
+
+// Causes a jove shell to be created.
+testbench and3_shell
+{
+    import com.newisys.samples.and3.*;
+}
+

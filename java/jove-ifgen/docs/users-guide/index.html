@@ -1,0 +1,590 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1" />
+<title>Jove-Ifgen Users Guide</title>
+<style type="text/css">
+<!--
+.code {
+	font-family: "Courier New", Courier, monospace;
+	font-size: 10pt;
+}
+-->
+</style>
+</head>
+<body>
+<h1>Jove-Ifgen Users Guide</h1>
+<p>Copyright &copy; 2005 Newisys, Inc. Licensed under the <a href="http://opensource.org/licenses/osl-2.0.php">Open Software License version 2.0</a>.</p>
+<p>Product and company names mentioned herein may be trademarks of their respective owners.</p>
+<p>Last updated 10/19/05</p>
+<h2><a name="Introduction" id="Introduction"></a>Introduction</h2>
+<p> When using the Jove environment, users write an ifgen specification to describe which Verilog signals and tasks will be accessed from Java. This specification is then parsed by a program called jove-ifgen (Jove Interface Generator), which generates the appropriate Java and Verilog files to facilitate such access.</p>
+<p>An ifgen specification is comprised of interfaces, ports, binds, HDL tasks, HVL tasks, and testbench declarations. A brief definition of each follows. Each type is described in more detail in the following sections.</p>
+<ul>
+  <li><a href="#Interfaces">Interfaces</a> associate Verilog signals with identifiers that can be used elsewhere in the specification. Interfaces also describe how and when the signals should be sampled and/or driven.</li>
+  <li><a href="#Ports">Ports</a> are types that describe a collection of abstract signals.</li>
+  <li><a href="#Binds">Binds</a> associate concrete interface signals with abstract port signals. A bind can be thought of as an instantiation of a port type.</li>
+  <li><a href="#HDLTasks">HDL tasks</a> describe Verilog tasks that can be called from Java.</li>
+  <li><a href="#HVLTasks">HVL tasks</a> describe Java methods that can be called from Verilog.</li>
+  <li><a href="#Enumerations">Enumerations</a> define types that can be uesd in parameterized interfaces, binds, and testbenches.</li>
+  <li><a href="#Testbenches">Testbench</a> declarations cause a Verilog shell to be written. A shell is a Verilog module that helps Jove interact with the Verilog simulation. Testbench declarations also describe which HDL tasks and HVL tasks should be included in the shell. </li>
+</ul>
+<h2><a name="Interfaces" id="Interfaces"></a>Interfaces</h2>
+<p>Interfaces are the mechanism by which the exact Verilog signals to be used in the testbench are defined. An interface includes a group of signal definitions as well as exactly one clock signal (which may be explicit or implicit).</p>
+<p>Each signal has a type associated with it that indicates whether it is an input, an output, or both. The possible types are <span class="code">input</span>, <span class="code">output</span>, <span class="code">inout</span>, or <span class="code">clock</span>. Signals declared as inputs will be sampled by the testbench, but never driven. Signals declared as outputs will be driven by the testbench, but never sampled. Inout signals may be sampled and driven by the testbench. Clock signals are a special type of input signal that affect how other signals in the interface are sampled and driven.</p>
+<p>Every non-clock signal has an associated clock edge. This is the edge on which the signal is sampled (inputs and inouts) or driven (outputs and inouts). Signals may be sampled and driven on the positive edge of the clock, the negative edge, or both.</p>
+<p>Inputs are sampled relative to the clock signal in their interface<sup><a href="#Footnote1">1</a></sup>. Every input signal has an input skew. This value is an integer in units of Verilog ticks. When a clock edge occurs at time T, the value is sampled at time T - skew. While an input skew of 0 is allowed, it is not advised as its behavior is often simulator dependent.<br />
+</p>
+<p align="center"><img src="InputSkew.png" alt="Input Skew Diagram" width="455" height="219" /></p>
+<p align="center">Figure 1: Input Skew </p>
+<p>Outputs are driven relative to the clock signal in their interface. Every output signal has an output skew. This value is an integer in units of Verilog ticks. When a clock edge occurs at time T, the value is driven at time T + skew.</p>
+<p align="center"><img src="OutputSkew.png" alt="Output Skew Diagram" width="460" height="219" /></p>
+<p align="center">Figure 2: Output Skew </p>
+<p>There are two ways to specify the Verilog signal associated with an interface signal. The first is to specify the fully qualified path of the signal. The second involves defining a default module for the interface and specifying paths relative to that module.</p>
+<p>The syntax for declaring a default module is:</p>
+<blockquote>
+  <p class="code">default module &lt;module_def&gt;;</p>
+</blockquote>
+<p>where <span class="code">module_def</span> is the fully qualified path of the default module. A default module definition is visible to signals declared after the definition. There may be multiple default module definitions in an interface, but only the most recent is visible.</p>
+<p>It is also possible to define default values for clock edges, input skews and output skews of interface signals. </p>
+<p>The syntax for declaring default values for input signals is:</p>
+<blockquote>
+  <p class="code">default sample(&lt;clkedge&gt;, &lt;skew&gt;);</p>
+</blockquote>
+<p>where <span class="code">clkedge</span> is one of <span class="code">posedge</span>, <span class="code">negedge</span>, or <span class="code">anyedge</span> and <span class="code">skew</span> is an integer less than or equal to zero. A default sample definition is visible to signals declared after the definition. There may be multiple default sample definitions in an interface, but only the most recent is visible.</p>
+<p>The syntax for declaring default values for output signals is:</p>
+<blockquote>
+  <p class="code">default drive(&lt;clkedge&gt;, &lt;skew&gt;);</p>
+</blockquote>
+<p>where <span class="code">clkedge</span> is one of <span class="code">posedge</span>, <span class="code">negedge</span>, or <span class="code">anyedge</span> and <span class="code">skew</span> is an integer greater than or equal to zero. A default drive definition is visible to signals declared after the definition. There may be multiple default drive definitions in an interface, but only the most recent is visible.</p>
+<p>The syntax of a signal declaration is:</p>
+<blockquote>
+  <p class="code">&lt;type&gt; [ &lt;width&gt; ] &lt;name&gt; [ &lt;sample_spec&gt; ] [ &lt;drive_spec&gt; ]<br />
+    ( hdl_node | module ) &lt;signal_path&gt;;</p>
+</blockquote>
+<p>where:</p>
+<ul>
+  <li><span class="code">type</span> is one of <span class="code">input</span>, <span class="code">output</span>, <span class="code">inout</span>, or <span class="code">clock</span>.</li>
+  <li><span class="code">width</span> is an optional Verilog bit vector width specifier. If <span class="code">width</span> is omitted, a width of 1 is used.</li>
+  <li><span class="code">name</span> is an identifier which must not start with a number and may contain letters, numbers and underscores.</li>
+  <li><span class="code">sample_spec</span> is a sample specification of the form:<br />
+    <span class="code">sample(&lt;clkedge&gt;, &lt;inputskew&gt;)</span><br />
+    where:<br />
+    <ul>
+      <li><span class="code">clkedge</span> is one of <span class="code">posedge</span>, <span class="code">negedge</span>, or <span class="code">anyedge.</span>
+      <li><span class="code">inputskew</span> is an integer less than or equal to zero, representing the input skew to use when sampling the signal.
+    </ul>
+  </li>
+  <li><span class="code">drive_spec</span> is a drive specification of the form:<br />
+    <span class="code">drive(&lt;clkedge&gt;, &lt;outputskew&gt;)</span><br />
+    where:
+    <ul>
+      <li><span class="code">clkedge</span> is one of <span class="code">posedge</span>, <span class="code">negedge</span>, or <span class="code">anyedge</span>.</li>
+      <li><span class="code">outputskew</span> is an integer greater than or equal to zero, representing the output skew to use when driving the signal.</li>
+    </ul>
+  </li>
+  <li><span class="code">signal_path</span> is a fully qualified signal path if <span class="code">hdl_node</span> is specified or a path relative to the default module if <span class="code">module</span> is specified. </li>
+</ul>
+<p><span class="code">sample_spec</span> and/or <span class="code">drive_spec</span> are required if there is no default specification in effect.</p>
+<p>It is possible to parameterize interfaces. This is described in <a href="#Parameterization">Parameterizing Interfaces, Binds, HDL tasks &amp; Testbenches </a>. The full grammar for interface sections is included as part of <a href="#AppendixB">Appendix B</a>.</p>
+<p><strong>Result:</strong> The code generated from interface definitions is not used by user code. </p>
+<h2><a name="Ports" id="Ports"></a>Ports</h2>
+<p>A port is a collection of abstract signals. An abstract signal does not define a width, and may not define a direction. These abstract signals are then bound to concrete interface signals via a <a href="#Binds">bind</a>. A port can be thought of as a data type while a bind is an instantiation of that data type.</p>
+<p>The grammar for defining a port is shown below. </p>
+<blockquote>
+  <p class="code">port ::= &quot;port&quot; &lt;port_name&gt; [ &lt;reverse_port_name&gt; ] &quot;{&quot; port_member ( port_member )* &quot;}&quot;</p>
+  <p class="code">port_member ::= [ [ &quot;fixed&quot; ] direction ] &lt;member_name&gt; &quot;;&quot;</p>
+  <p class="code">direction ::= ( &quot;input&quot; | &quot;output&quot; | &quot;inout&quot; ) </p>
+</blockquote>
+<p>The direction specified is relative to the testbench. While the direction is optional, it is recommended as it allows for additional compile-time checks on the code using the signal. When direction is omitted, the direction is assumed to be inout. If reverse_port_name is specified, two ports will be created with the second being the &quot;reverse port&quot;. A reverse port contains each signal in the regular port, but with its direction reversed. This means signals declared as inputs in the regular port become outputs in the reverse port. Signals declared as inout are left unchanged in the reverse port. Further, signals modified with the <span class="code">fixed</span> attribute will have the same direction in both the forward and reverse ports. Thus, if a port is comprised solely of inout signals or signals which all have the <span class="code">fixed</span> attribute, its contents will be identical to the reverse port.</p>
+<p>Reverse ports are generally useful when writing a module that needs to model both the input and output of an interface. Consider a module that can both send data to and receive data from some I/O device. Such a module would need a port describing the interface's signals both from the transmit direction and the receive direction. In this case a reverse port is exactly what is called for. </p>
+<p><strong>Result:</strong> A class called <span class="code">port_name</span> will be generated containing an <span class="code">InputSignal</span>, <span class="code">OutputSignal</span>, or <span class="code">InOutSignal</span> class member, as appropriate, for each port member. (These signal interfaces are defined in the <span class="code">com.newisys.dv</span> package.)</p>
+<h2><a name="Binds" id="Binds"></a>Binds</h2>
+<p>Binds associate concrete interface signals with abstract port signals. If  a <a href="#Ports">port</a> is considered a data type, a bind is an instantiation of that data type. To associate a port signal with an interface signal, use the following syntax:</p>
+<blockquote>
+  <p class="code">&lt;port_signal&gt; &lt;intf_name&gt;.&lt;intf_signal&gt;; </p>
+</blockquote>
+<p>where:</p>
+<ul>
+  <li><span class="code">port_signal</span> is the name of the port signal to which you're binding</li>
+  <li><span class="code">intf_name</span> is the identifier for the interface from which you're binding</li>
+  <li><span class="code">intf_signal</span> is the signal name in that interface. </li>
+</ul>
+<p>It  often happens that each concrete signal being bound resides in the same interface. Ifgen allows the user to specify a default interface with the following syntax:</p>
+<blockquote>
+  <p class="code">default interface &lt;intf_name&gt;; </p>
+</blockquote>
+<p>where <span class="code">intf_name</span> is the identifier of the default interface. A default interface definition is visible to those declarations that come after the definition. There may be multiple default interface definitions in a bind, but only the most recent is visible. When a default interface definition is in effect, the association of a port signal with an interface signal becomes:</p>
+<blockquote>
+  <p class="code">&lt;port_signal&gt; &lt;intf_signal&gt;; </p>
+</blockquote>
+<p>where <span class="code">intf_signal</span> exists in the default interface. </p>
+<p>It is also possible to bind a concatenation of interface signals to a port signal. This can be achieved with the following syntax:</p>
+<blockquote>
+  <p class="code">&lt;port_signal&gt; { &lt;intf_name_1&gt;.&lt;intf_signal_1&gt; [, &lt;intf_name_2&gt;.&lt;intf_signal_2&gt; ... ] }; </p>
+</blockquote>
+<p>Of course, if a default interface definition is in effect, this becomes:</p>
+<blockquote>
+  <p class="code">&lt;port_signal&gt; { &lt;intf_signal_1&gt; [, &lt;intf_signal_2&gt; ... ] };</p>
+</blockquote>
+<p>where each interface signal exists in the default interface. </p>
+<p>The grammar for a non-parameterized bind is shown below. </p>
+<blockquote>
+  <p class="code">bind ::= &quot;bind&quot; &lt;bind_name&gt; &quot;is&quot; &lt;port_type&gt; &quot;{&quot; bind_stmt ( bind_stmt )* &quot;}&quot;</p>
+  <p class="code">bind_stmt ::= default_intf_def | port_signal_assignment</p>
+  <p class="code">default_intf_def ::= &quot;default interface&quot; &lt;intf_name&gt; &quot;;&quot;</p>
+  <p class="code">port_signal_assignment ::= &lt;port_signal&gt; bind_expr &quot;;&quot;</p>
+  <p class="code">bind_expr ::= intf_signal_ref | bind_concatenation</p>
+  <p class="code">bind_concatenation ::= &quot;{&quot; intf_signal_ref ( &quot;,&quot; intf_signal_ref )* &quot;}&quot;</p>
+  <p class="code">intf_signal_ref ::= [ &lt;intf_name&gt; &quot;.&quot; ]&lt;intf_signal&gt;<br />
+  </p>
+</blockquote>
+<p>It is possible to parameterize binds. For more information see <a href="#Parameterization">Parameterizing Interfaces, Binds, HDL tasks &amp; Testbenches </a>. The full grammar for binds is included as part of <a href="#AppendixB">Appendix B</a>.</p>
+<p><strong>Result:</strong> For non-parameterized binds, a class called <span class="code">bind_name</span> is generated with a <span class="code">public static final</span> member of type <span class="code">port_type</span> named <span class="code">INSTANCE</span>. <span class="code">INSTANCE</span> has each of its members bound to the appropriate interface signal(s).</p>
+<h2><a name="HDLTasks" id="HDLTasks"></a>HDL Tasks</h2>
+<p>HDL tasks provide a way for users to execute Verilog tasks from Java code. An HDL task declaration will require the user to supply a name which will be used to reference the task in the Jove environment. There is currently a restriction that this name must be unique in the ifgen specification (and any ifgen specifications it <a href="#Imports">imports</a>). As in Verilog, if <span class="code">width</span> is omitted for any parameter, a width of 1 is used.</p>
+<p>The grammar for a nonparameterized HDL task is shown below.</p>
+<blockquote>
+  <p class="code">hdl_task ::= &quot;hdl_task&quot; &lt;jove_task_name&gt; task_arguments &lt;verilog_task_path&gt; &quot;;&quot;</p>
+  <p class="code">task_arguments ::= &quot;(&quot; task_argument ( &quot;,&quot; task_argument )* &quot;)</p>
+  <p class="code">task_argument ::= ( &quot;input&quot; | &quot;output&quot; | &quot;inout&quot; ) [ width ] &lt;task_argument_name&gt;</p>
+</blockquote>
+<p>It is possible to parameterize HDL tasks. For more information see <a href="#Parameterization">Parameterizing Interfaces, Binds, HDL tasks &amp; Testbenches </a>. The full grammar for hdl tasks is included as part of <a href="#AppendixB">Appendix B</a>.</p>
+<p><strong>Result:</strong> A class is generated containing static methods which can be used to call the HDL tasks declared in the ifgen specification. The name of this generated class is based on the name of the package in which the HDL tasks are declared. For instance, if the tasks are declared in the package <span class="code">com.foo.bar</span>, a class named<span class="code"> com.foo.bar.BarTasks</span> will generated containing a static method for each HDL task. If no package is specified, a class named <span class="code">Tasks</span> will be generated in the default package containing a static method for each HDL task.</p>
+<h2><a name="HVLTasks" id="HVLTasks"></a>HVL Tasks</h2>
+<p>HVL tasks provide a way for users to execute methods in a Jove testbench from Verilog. An HVL task declaration will require the user to supply a name which will be used to reference the task in both the Jove environment and in Verilog. There is  a restriction that this task name must be unique in the ifgen specification (and any ifgen specifications it <a href="#Imports">imports</a>). As in Verilog, if <span class="code">width</span> is omitted for any parameter, a width of 1 is used.</p>
+<p>The ifgen HVL task grammar is shown below.</p>
+<blockquote>
+  <p class="code">hvl_task ::= &quot;hvl_task&quot; &lt;task_name&gt; task_arguments &quot;;&quot;</p>
+  <p class="code">task_arguments ::= &quot;(&quot; task_argument ( &quot;,&quot; task_argument )* &quot;)&quot;</p>
+  <p class="code">task_argument ::= ( &quot;input&quot; | &quot;output&quot; | &quot;inout&quot; ) [ width ] &lt;task_argument_name&gt;</p>
+</blockquote>
+<p><strong>Result:</strong> A Verilog task with the name <span class="code">task_name</span> is generated in the Verilog shell. When this task is called,  Jove searches for a registered method with the name &quot;task_&quot;&lt;task_name&gt; (e.g. if <span class="code">task_name</span> is &quot;myTask&quot;, the Jove would search for &quot;task_myTask&quot;). By default, Jove searches the hierarchy of the <span class="code">DVApplication</span> being run; however, other tasks can be registered via the <span class="code">com.newisys.dv.JavaTaskManager.registerTask()</span> method.</p>
+<h2><a name="Enumerations" id="Enumerations"></a>Enumerations</h2>
+<p>An enumeration defines a type that can be used by parameterized interfaces, binds, and testbenches. For more information, see <a href="#Parameterization">Parameterizing Interfaces, Binds, HDL tasks & Testbenches</a>. The grammar for an enumeration is shown below.</p>
+<p class="code">enumeration ::= &quot;enum&quot; &lt;enumeration_type&gt; &quot;{&quot; &lt;enumeration_value&gt; ( &quot;,&quot; &lt;enumeration_value&gt; )* &quot;;&quot; &quot;}&quot;</p>
+<p><strong>Result:</strong> A Java enumeration called <span class="code">enumeration_type</span> is generated.</p>
+<h2><a name="Testbenches" id="Testbenches"></a>Testbenches</h2>
+<p>Testbench declarations instruct ifgen on how to generate a Verilog shell. They also specify which HDL tasks and HVL tasks should be included in that shell. </p>
+<p>The non-parameterized grammar for a testbench is shown below. </p>
+<blockquote>
+  <p class="code">testbench ::= &quot;testbench&quot; &lt;tb_name&gt; &quot;{&quot; ( import_stmt )* &quot;}&quot; </p>
+  <p class="code">import_stmt ::= &quot;import&quot; ( &lt;qualified_type | pkg_wildcard&gt; )  &quot;;&quot; </p>
+</blockquote>
+<p>The generated shell will include the following:</p>
+<ul>
+  <li>For each signal of each interface defined in the file containing the testbench declaration, logic to sample and/or drive that signal from the Jove environment.</li>
+  <li>For each HDL task defined in the file containing the testbench declaration, logic to call that HDL task from the Jove environment.</li>
+  <li>For each HVL task defined in the file containing the testbench declaration, logic to call that HVL task from Verilog.</li>
+  <li>Logic to do each of the above for any types imported in the testbench body. If a wildcard is present in an import statement,  all relevant ifgen types in that package are used when generating the shell.</li>
+</ul>
+<p><strong>Result:</strong> A Verilog module whose name is <span class="code">tb_name</span>. This module will be written to a file whose name is based on the name of the specification being parsed. If the specification is memctl.if, the shell will be written to memctl_shell.v by default. The name of the file containing the generated shell can be modified as described in <a href="#Compiling">Compiling an ifgen Specification</a>.</p>
+<p>It is possible to parameterize testbenches. For more information see <a href="#Parameterization">Parameterizing Interfaces, Binds, HDL tasks &amp; Testbenches </a>. The full grammar for testbenches is included as part of <a href="#AppendixB">Appendix B</a>.</p>
+<h2><a name="Imports" id="Imports"></a>Packages &amp; Imports </h2>
+<p>Ifgen allows the user to specify a package in an ifgen specification. When a package declaration is present, generated Java source files will placed into that package. If no package declaration is present, the default package will be used (as in Java). The package decaration, if present, should be the first (non-comment) statement in the file and has the following grammar:</p>
+<blockquote>
+  <p class="code">pkg_stmt ::= &quot;package&quot; &lt;pkg_name&gt; &quot;;&quot;</p>
+</blockquote>
+<p>where <span class="code">pkg_name</span> is a Java-style package name.</p>
+<p>In a modular design, it is useful to have multiple ifgen specifications for different levels of abstraction. A port may be defined in com.foo.bar.baz and then bound one way in com.foo.testbench.a and another way in com.foo.testbench.b. Ifgen supports this by allowing the user to import ifgen specifications from other packages. The greammar for such an import is:</p>
+<blockquote>
+  <p class="code">import_stmt ::= &quot;import&quot; ( &lt;qualified_type&gt; | &lt;pkg_wildcard&gt; ) &quot;;&quot; </p>
+</blockquote>
+<p>where <span class="code">qualified_type</span> is the fully qualified path to an ifgen type and <span class="code">pkg_wildcard</span> is a package name ending in &quot;.*&quot;. In the example above, the ifgen specifications in each testbench would have a statement like one of those show below:</p>
+<blockquote>
+  <p class="code">import com.foo.bar.baz; // qualified_type<br />
+    import com.foo.bar.*; // pkg_wildcard, including all ifgen types in package com.foo.bar</p>
+</blockquote>
+<p>This usage of <span class="code">import</span> in this context is different than that of the <a href="#Testbenches">testbench declaration</a>. The global import statement imports port types that can be bound in the ifgen specification, while the usage of <span class="code">import</span> in the testbench declaration specifies which signals, HDL tasks, and HVL tasks to include in the generated Verilog shell. Global import statements, if present, must be placed after any package declaration, but before any interface, port, bind, HDL task, HVL task, or testbench declarations.</p>
+<h2><a name="Parameterization" id="Parameterization"></a>Parameterizing Interfaces, Binds, HDL tasks &amp; Testbenches</h2>
+Verilog promotes code reuse through the idea of modules. Thus, a single module may be instantiated multiple times. It is often the job of the verification engineer to drive or sample signals, or call Verilog tasks defined on each of those instantiations. Without paramterization, an ifgen interface signal would have to be created for each signal of each module instance. For a module with dozens of signals in its interface, this solution becomes unwieldy very fast. To help avoid this potential maintenance problem, ifgen provides the ability to parameterize interfaces, binds, and testbenches.
+<h3><a name="ParamterizedInterfaces" id="ParamterizedInterfaces"></a>Parameterized Interfaces</h3>
+<p>When an interface is parameterized, it can use the parameter values in its definition. If, for instance, you have to interact with three instances of a module named dut.mod1, dut.mod2, and dut.mod3, you need only define one interface and parameterize it with an integer that will be used to select from the three instances. The result might look like the code below. </p>
+<pre class="code">interface ModuleIntfTmpl &lt;integer mod_idx&gt;
+{
+    default sample(posedge, -1);
+    default drive(posedge, 1);
+
+    clock clk hdl_node dut.clk;
+    input [7:0] input1 hdl_node &quot;dut.mod${mod_idx}.signal1&quot;;
+    output output1 hdl_node &quot;dut.mod${mod_idx}.signal2&quot;;
+    inout  input1 hdl_node &quot;dut.mod${mod_idx}.signal3&quot;;
+}</pre>
+<p>This example reduces the number of interface signals from 10 (3 modules with 3 signals each plus a clock) to only 4. The parameter  is used by prefixing it with a dollar sign &quot;$&quot;. Optional curly braces can be placed around the parameter's identifier. This is often useful when the parameter is placed in the middle of another identifier (e.g. <span class="code">foo${bar}baz</span>). Also, when parameters are used in signal declarations as shown above, the HDL path must be quoted. Interface parameters may be used in the following contexts:</p>
+<ul>
+  <li>In a <span class="code">default module</span> declaration, as part of the module path.</li>
+  <li>In an <span class="code">hdl_node</span> HDL path.</li>
+  <li>In a <span class="code">module</span> HDL path.</li>
+</ul>
+<p>The parameters of an interface are described in a comma-delimited list of  declarations enclosed in angle brackets. Interface parameter variables come in three types: integer, string, and enumeration. A parameterized interface is then declared using the grammar below.</p>
+<p class="code">parameterized_interface ::= &quot;interface&quot; &lt;intf_name&gt; [ parameter_list ]&quot;{&quot; interface_body &quot;}&quot; </p>
+<p class="code">parameter_list ::= &quot;&lt;&quot; parameter_decl ( &quot;,&quot; parameter_decl )* &quot;&gt;&quot;</p>
+<p class="code">parameter_decl ::= parameter_type &lt;parameter_name&gt;</p>
+<p class="code">parameter_type ::= &quot;integer &quot;| &quot;string&quot; | &lt;enumeration_type&gt;</p>
+<h3>Parameterized Binds</h3>
+To allow access to parameterized interfaces, binds must also support parameterization. Like interfaces, parameters are used by prefixing a dollar sign &quot;$&quot; to the parameter name. For instance, a bind for the interface described above might look like the following code.<br>
+<pre class="code">port ModulePort<br />{
+    clk;
+    sig1;
+    sig2;
+    sig3;
+}
+
+bind ModuleBindTmpl&lt;integer module_index&gt; is ModulePort
+{
+    default interface ModuleIntfTmpl&lt;$module_index&gt;;<br />
+    clk clk;
+    sig1 input1;<br />    sig2 output1;<br />    sig3 inout1;<br />}</pre>
+<p>In this example, the default interface depends on the parameter passed to the bind. Normally, this configuration would require three binds, one for each module instance; however, with parameterization, this has been reduced to only one bind definition. Bind parameters may be used in the following contexts:</p>
+<ul>
+  <li>As arguments to parameterized interfaces.</li>
+</ul>
+<p>The grammar for a parameterized bind is shown below. The parameter_list production is identical to that described in <a href="#ParamterizedInterfaces">Parameterized Interfaces</a>.</p>
+<p class="code">parameterized_bind ::= &quot;bind&quot; &lt;bind_name&gt; [ parameter_list ] &quot;is&quot; &lt;port_type&gt; &quot;{&quot; bind_body &quot;}&quot;</p>
+<h3><a name="ParamterizedHDLtasks" id="ParamterizedHDLtasks"></a>Parameterized HDL tasks</h3>
+<p>Once you are accessing Verilog modules that are instantiated multiple times with parameterized interfaces and binds, it also makes sense to access Verilog tasks that are defined within those modules with parameterized HDL tasks. To define a parameterized HDL task, you could write code that looks like the following below. </p>
+<pre class="code">hdl_task HDLTaskParam&lt;integer x, string y&gt;(input[7:0] a, inout b) "dut$x.$y.footask";</pre>
+<p> The grammar for the parameterized HDL task is shown below. </p>
+<p class="code">parameterized_hdl_task ::= "hdl_task" <jove_task_name> [parameter_list] task_arguments bare_module_def ";" </p>
+<h3> Parameterization &amp; Testbenches</h3>
+<p>Parameterized interfaces, binds and HDL tasks are much like templates, waiting to be instantiated. This instantiation occurs in the testbench block, after any testbench import statements. To continue the example above, the testbench might look like the following:</p>
+<pre class="code">testbench ModuleTB
+{
+
+    interface ModuleIntf ModuleIntfTmpl&lt;1&gt;;
+    interface ModuleIntf ModuleIntfTmpl&lt;2&gt;;
+    interface ModuleIntf ModuleIntfTmpl&lt;3&gt;;
+
+    bind ModuleBind ModuleBindTmpl&lt;1&gt;;
+    bind ModuleBind ModuleBindTmpl&lt;2&gt;;
+    bind ModuleBind ModuleBindTmpl&lt;3&gt;;
+
+    hdl_task MyHDLTask HDLTaskParam&lt;1, "foo"&gt;;
+    hdl_task MyHDLTask HDLTaskParam&lt;2, "foo"&gt;;
+    hdl_task MyHDLTask HDLTaskParam&lt;3, "foo"&gt;;
+}
+</pre>
+<p>This will work perfectly fine, instantiating interfaces and binds for the three instances of the Verilog module. When binds are instantiated like this, they do not contain an <span class="code">INSTANCE</span> member as described in the <a href="#Binds">Binds</a> section. Rather, the generated testbench class, <span class="code">ModuleTB</span> will include a method with the signature:</p>
+<p class="code">public ModulePort getModuleBind(int module_index);</p>
+<p>This method is used to acquire a reference to the bind instance. If this method is called with an argument of 2, the returned <span class="code">ModulePort</span> will  have <span class="code">Signal</span> members named sig1, sig2, and sig3 which are bound to the  appropriate signals in the Verilog instance <span class="code">dut.mod2</span>. </p>
+<p>If you have more than three modules, instantiating each one can become tedious. The testbench grammar supports a 'for' loop construct to address this. Using the 'for' loop, the above code can be shortened to the following.</p>
+<pre class="code">testbench ModuleTB
+{
+    for integer i ([1..3])
+    {
+        interface ModuleIntf ModuleIntfTmpl&lt;$i&gt;;
+        bind ModuleBind ModuleBindTmpl&lt;$i&gt;;
+        hdl_task MyHDLTask HDLTaskParam&lt;$i, "foo"&gt;;
+    }
+}
+</pre>
+<p>Testbench 'for' loops operate over a set of values. Sets are declared as comma-delimited values and ranges, enclosed in square brackets. The  grammar for the 'for' loop is shown below. </p>
+<p class="code">for_loop ::= &quot;for&quot; parameter_type &lt;identifier&gt; &quot;(&quot; for_loop_set &quot;)&quot; &quot;{&quot; for_body &quot;}&quot;</p>
+<p class="code">parameter_type ::= &quot;integer&quot; | &quot;string&quot; | &lt;enumeration_type&gt; </p>
+<p class="code">for_loop_set ::= parameter_reference | for_loop_set_literal</p>
+<p class="code">for_loop_set_literal ::= &quot;[&quot; set_member ( &quot;,&quot; set_member )* &quot;]&quot;</p>
+<p class="code">set_member ::= range | value </p>
+<p class="code">range ::= value &quot;..&quot; value </p>
+<p><span class="code">value ::= integer_literal | string_literal | enumeration_literal | parameter_reference</span></p>
+<p>Integer literals may be specified as decimal or hexadecimal, with hexadecimal values being prefixed by &quot;0x&quot;. String literals must be quoted. Enumeration literals need not be qualified. Parameter references are valid when the testbench itself is parameterized (see below). If this is the case, the parameter name is prefixed with a dollar sign &quot;$&quot;, as with interfaces and binds. The variable of a 'for' loop may be used in the following contexts:</p>
+<ul>
+  <li>As an argument to a parameterized interface or bind instantiated in the body of the declaring 'for' loop or instantiated in a 'for' loop nested inside the declaring 'for' loop.</li>
+  <li>As a value in the <span class="code">for_loop_set</span> of a nested 'for' loop.</li>
+</ul>
+<p>Finally, testbenches themselves may be paramterized. Testbench parameter types are the same as interface and bind parameter types with the addition of sets. Thus, if a ModuleTB declared above needed to take a dynamic set of module instances, the  code below might be used. For instructions on how to pass parameters to testbenches see <a href="#Compiling">Compiling an ifgen Specification</a>.</p>
+<pre class="code">testbench ModuleTB&lt;set of integer module_set&gt;
+{
+    for integer i ($module_set)
+    {
+        interface ModuleIntf ModuleIntfTmpl&lt;$i&gt;;
+        bind ModuleBind ModuleBindTmpl&lt;$i&gt;;
+    }
+}
+</pre>
+<p>The grammar for a parameterized testbench is shown below.</p>
+<p class="code">paramterized_testbench ::= &quot;testbench&quot; &lt;tb_name&gt; [ parameter_list ] &quot;{&quot; tb_body &quot;}&quot;</p>
+<p class="code">parameter_list ::= &quot;&lt;&quot; parameter_decl ( &quot;,&quot; parameter_decl )* &quot;&gt;&quot;</p>
+<p class="code">parameter_decl ::= parameter_type &lt;parameter_name&gt;</p>
+<p class="code">parameter_type ::= primary_type | set_type</p>
+<p class="code">set_type ::= &quot;set&quot; &quot;of&quot;    primary_type </p>
+<p class="code">primary_type ::= &quot;integer&quot; | &quot;string&quot; | &lt;enumeration_type&gt;</p>
+<h2><a name="Comments" id="Comments"></a>Comments</h2>
+<p>Ifgen supports both C- and C++-style comments anywhere in the specification. </p>
+<h2><a name="Compiling" id="Compiling"></a>Compiling an ifgen Specification</h2>
+<p>Ifgen provides a main() method in the class <span class="code">com.newisys.dv.ifgen.IfgenMain</span>. Ifgen relies on the following Jove packages (their JARs or <span class="code">bin</span> directories should be in the Java classpath):</p>
+<ul>
+  <li>jove-ifgen</li>
+  <li>newisys-utils</li>
+  <li>langschema</li>
+  <li>langschema-java</li>
+  <li>jove</li>
+</ul>
+<p>The usage of IfgenMain is: </p>
+<p class="code">IfgenMain [-help] [-srcroot &lt;path&gt;] [-tstamp &lt;path&gt;] [-filelist &lt;path&gt;] [-forcedefaultclock] [-file &lt;path&gt;...] [-dir &lt;path&gt;...] [-genshells] [-shell &lt;testbench&gt; &lt;params&gt; [shellname]]</p>
+<table border="1">
+  <caption align="bottom">
+  Ifgen command-line arguments
+  </caption>
+  <tr>
+    <th scope="col">Argument</th>
+    <th scope="col">Description</th>
+  </tr>
+  <tr>
+    <td class="code">-help</td>
+    <td>Prints ifgen usage to standard out.</td>
+  </tr>
+  <tr>
+    <td class="code">-srcroot &lt;path&gt; </td>
+    <td>Specifies the root directory where generated files will be placed.</td>
+  </tr>
+  <tr>
+    <td class="code">-tstamp &lt;path&gt; </td>
+    <td>Specifies a timestamp file which is used to avoid recompiling an ifgen specification if it hasn't changed.</td>
+  </tr>
+  <tr>
+    <td class="code">-filelist &lt;path&gt; </td>
+    <td>Specifies a file containing generated files which is used to avoid recompiling an ifgen specification if it hasn't changed.</td>
+  </tr>
+  <tr>
+    <td class="code">-forcedefaultclock</td>
+    <td>If present, directs ifgen to use a default clock for interfaces that do not explicitly define a clock.</td>
+  </tr>
+  <tr>
+    <td class="code">-file &lt;path&gt; </td>
+    <td>The path to an  ifgen specification to parse.</td>
+  </tr>
+  <tr>
+    <td class="code">-dir &lt;path&gt; </td>
+    <td>Directory to scan for ifgen specifications (all files ending matching *.if are considered ifgen specifications).</td>
+  </tr>
+  <tr>
+    <td class="code">-genshells</td>
+    <td>If present, directs ifgen to generate verilog shells for any non-parameterized testbench section found.</td>
+  </tr>
+  <tr>
+    <td class="code">-shell &lt;testbench&gt; &lt;params&gt; [shellname] </td>
+    <td>If present, directs ifgen to generate the specified shell as described below.</td>
+  </tr>
+</table>
+<p>After ifgen completes successfully, generated files can be found in the directory specified by <span class="code">-srcroot</span>. </p>
+<p>At least one <span class="code">-file</span> or <span class="code">-dir</span> argument must be given. Multiple <span class="code">-file</span> and <span class="code">-dir</span> arguments may be given, in which case they are additive. </p>
+<p>When <span class="code">-forcedefaultclock</span> is used, all interfaces without an explicitly defined clock will use the signal returned by <span class="code">com.newisys.dv.DV.simulation.getDefaultClockSignal()</span> as their clock signal. If an interface does not explicitly define a clock signal, and <span class="code">-forcedefaultclock</span> is not used, ifgen will exit with an error.</p>
+<p>The <span class="code">-shell</span> argument causes ifgen to generate a shell for a parameterized testbench as specified. <span class="code">testbench</span> is the fully qualified name of the testbench section describing the shell. <span class="code">params</span> is a string of the form &quot;param1=value1 [, param2=value2 ...]&quot; enclosed in angle brackets. The optional <span class="code">shellname</span> argument allows the users to specify the name of the generated shell file. It is an error if <span class="code">shellname</span> specifies a directory path. Multiple <span class="code">-shell</span> arguments are allowed and a shell will be created for each. The <span class="code">-shell</span> and <span class="code">-genshells</span> arguments may be used together.</p>
+<p>Parameter values can be integers, strings, enumeration values, or sets of those types. Integer values should be specified in decimal. String values need not be quoted unless they contain leading or trailing whitespace. Enumeration values do not need to be qualified. Sets are specified by enclosing the set values in square brackets. The set values themselves are separated by spaces. In sets of strings, the strings must be quoted. Sets of other types are not quoted. (e.g. [&quot;string 1&quot; &quot;second string&quot;] or [1 4 60 7]). Given all of this, a <span class="code">-shell </span>argument might look like: </p>
+<blockquote>
+  <p class="code">-shell com.newisys.tutorial.ParameterizedTestbench &quot;&lt;dut_set=[0 2 4], dut_prefix=mydut&gt;&quot; tutorial_shell.v</p>
+</blockquote>
+<p>This would generate a shell as defined by <span class="code">ParameterizedTestbench</span>, passing a set of integers consisting of 0, 2, and 4 as the <span class="code">dut_set</span> parameter, and <span class="code">mydut</span> as the <span class="code">dut_prefix</span> parameter. The generated shell would be written to a file named <span class="code">tutorial_shell.v</span>.</p>
+<h2><a name="AntCompiling" id="AntCompiling"></a>Using Ant to Compile an ifgen Specification</h2>
+<p>An ifgen ant task is supplied by the class <span class="code">com.newisys.dv.ifgen.ant.IfgenTask</span>. To use this task, place the following import into your Ant build file (changing the path to jove-defs.xml as appropriate):</p>
+<pre class="code">&lt;import file=&quot;../jove-defs.xml&quot; /&gt;</pre>
+<p>Any target that invokes the ifgen task should add the <span class="code">ifgen-taskdef</span> target to its dependencies. The ifgen task takes a number of parameters which are detailed below. For a detailed description of each parameter, see <a href="#Compiling">Compiling an ifgen specification</a>.
+<p><strong>Parameters</strong>
+<table border="1">
+  <tr>
+    <th scope="col">Attribute</th>
+    <th scope="col">Description</th>
+    <th scope="col">Required</th>
+  </tr>
+  <tr>
+    <td class="code">srcroot</td>
+    <td> The directory in which to write generated files.</td>
+    <td>Yes</td>
+  </tr>
+  <tr>
+    <td class="code">tstamp</td>
+    <td> A file to contain timestamp information. </td>
+    <td>No</td>
+  </tr>
+  <tr>
+    <td class="code">filelist</td>
+    <td> A file to contain generated file information. </td>
+    <td>No</td>
+  </tr>
+  <tr>
+    <td class="code">forcedefaultclock</td>
+    <td>A boolean value that specifies whether or not a default clock will be used in interfaces which do not explcitly declare a clock signal. </td>
+    <td>No</td>
+  </tr>
+  <tr>
+    <td class="code">genshells</td>
+    <td>A boolean value that specifies whether or not Verilog shells for non-parameterized testbenches will be generated.</td>
+    <td>No</td>
+  </tr>
+</table>
+<p><strong>Parameters specified as nested elements</strong>
+<p><strong>fileset</strong>
+<p>A <a href="http://ant.apache.org/manual/CoreTypes/fileset.html">fileset</a> describing the ifgen specifications that should be compiled.
+<p><strong>shell</strong>
+<p>A shell configuration for which ifgen should generate a Verilog shell. The shell parameter is the Ant equivalent of the command line <span class="code">-shell</span> argument. Shell parameters are required to generate shells for parameterized testbenches. The shell type takes parameters as described below.
+<p><strong>shell Parameters</strong>
+<table border="1">
+  <tr>
+    <th scope="col">Attribute</th>
+    <th scope="col">Description</th>
+    <th scope="col">Required</th>
+  </tr>
+  <tr>
+    <td class="code">testbench</td>
+    <td>The qualified name of the testbench block that describes the shell to be generated.</td>
+    <td>Yes</td>
+  </tr>
+  <tr>
+    <td class="code">shellname</td>
+    <td>The name to use for the generated shell file. This should simply be a filename, not a directory path.</td>
+    <td>No</td>
+  </tr>
+</table>
+<p><strong>shell Parameters specified as nested elements</strong>
+<p><strong>arg</strong>
+<p>Zero or more arg parameters define the testbench parameters that will be used to generate the Verilog shell. The arg type takes parameter as described below.
+<p><strong>arg Parameters</strong><table border="1">
+  <tr>
+    <th scope="col">Attribute</th>
+    <th scope="col">Description</th>
+    <th scope="col">Required</th>
+  </tr>
+  <tr>
+    <td>name</td>
+    <td>The name of the testbench parameter.</td>
+    <td>Yes</td>
+  </tr>
+  <tr>
+    <td>value</td>
+    <td>The value of the testbench parameter. For a description of how to specify sets, see <a href="#Compiling">Compiling an ifgen specification</a>.</td>
+    <td>Yes</td>
+  </tr>
+</table>
+<p>&nbsp;</p>
+<h2><a name="AppendixA" id="AppendixA"></a>Appendix A: Jove-Ifgen Keywords</h2>
+<p>The following is a list of keywords used in the Jove grammar. If there is a need to use one of these keywords as an identifier or as part of a signal path, simply place quotes around the identifier or signal path.</p>
+<table border="0" align="center" cellpadding="5" class="code">
+  <tr>
+    <td>anyedge</td>
+    <td>bind</td>
+    <td>bit</td>
+    <td>clock</td>
+    <td>default</td>
+    <td>depth</td>
+  </tr>
+  <tr>
+    <td>drive</td>
+    <td>enum</td>
+    <td>for</td>
+    <td>hdl_node</td>
+    <td>hdl_task</td>
+    <td>hvl_task</td>
+  </tr>
+  <tr>
+    <td>import</td>
+    <td>inout</td>
+    <td>input</td>
+    <td>integer</td>
+    <td>interface</td>
+    <td>is</td>
+  </tr>
+  <tr>
+    <td>module</td>
+    <td>negedge</td>
+    <td>of</td>
+    <td>output</td>
+    <td>package</td>
+    <td>port</td>
+  </tr>
+  <tr>
+    <td>posedge</td>
+    <td>sample</td>
+    <td>set</td>
+    <td>string</td>
+    <td>testbench</td>
+    <td>&nbsp;</td>
+  </tr>
+</table>
+<p>&nbsp;</p>
+<h2><a name="AppendixB" id="AppendixB"></a>Appendix B: Jove-Ifgen Grammar</h2>
+<p>Below is the full ifgen grammar. Comments are allowed as <a href="#Comments">described above</a>, but are not shown in the grammar. Names consisting of all capital letters indicate lexer tokens, while names in all lowercase represent grammar productions. </p>
+<p class="code">ifgen_spec ::= [ pkg_decl ] ( import_decl )* ( intf | port | bind | enum | hdl_task | hvl_task | testbench )*</p>
+<p class="code">pkg_decl ::= &quot;package&quot; qname &quot;;&quot;</p>
+<p class="code">import_decl ::= &quot;import&quot; ( qname | wildcard ) &quot;;&quot;</p>
+<p class="code">intf ::= &quot;interface&quot; identifier [ parameter_list ] &quot;{&quot; ( intf_member )+ &quot;}&quot;</p>
+<p class="code">parameter_list ::= &quot;&lt;&quot; parameter_decl ( &quot;,&quot; parameter_decl )* &quot;&gt;&quot;</p>
+<p class="code">parameter_decl ::= primary_type identifier</p>
+<p class="code">primary_type ::= &quot;integer&quot; | &quot;string&quot; | qname </p>
+<p class="code">intf_member ::= ( intf_default_def | clock_def | input_def | output_def | inout_def ) &quot;;&quot;</p>
+<p class="code">intf_default_def ::= &quot;default&quot; ( sample_def | drive_def | module_def )</p>
+<p class="code">sample_def ::= &quot;sample&quot; &quot;(&quot; edge &quot;,&quot; integer &quot;)&quot;</p>
+<p class="code">drive_def ::= &quot;drive&quot; &quot;(&quot; edge &quot;,&quot; integer &quot;)&quot;</p>
+<p class="code">edge ::= &quot;posedge&quot; | &quot;negedge&quot; | &quot;anyedge&quot;</p>
+<p class="code">module_def ::= &quot;module&quot; bare_module_def</p>
+<p class="code">bare_module_def ::= (qname | var_ref )</p>
+<p class="code">clock_def ::= &quot;clock&quot; identifier [ module_def | hdl_node_def ]</p>
+<p class="code">input_def ::= &quot;input&quot; [ width ] identifier [ sample_def ] [ depth_def ] [ module_def | hdl_node_def ]</p>
+<p class="code">output_def ::= &quot;output&quot; [ width ] identifier [ drive_def ]  [ module_def | hdl_node_def ] </p>
+<p class="code">inout_def ::= &quot;inout&quot; [ width ] identifier [ sample_def ] [ drive_def ] [ depth_def ] [ module_def | hdl_node_def ]</p>
+<p class="code">depth_def ::= &quot;depth&quot; integer </p>
+<p class="code">hdl_node_def ::= &quot;hdl_node&quot; signal_ref </p>
+<p class="code">signal_ref ::= signal_slice | signal_concat</p>
+<p class="code">signal_slice ::= ( qname | var_ref ) [ &quot;[&quot; integer [ &quot;:&quot; integer ] &quot;]&quot; ]</p>
+<p class="code">signal_concat ::= &quot;{&quot; signal_slice ( &quot;,&quot; signal_slice )* &quot;}&quot; </p>
+<p class="code">port ::= &quot;port&quot; identifier [ identifier ] &quot;{&quot; ( [ [ &quot;fixed&quot; ] direction ] identifier &quot;;&quot; )+ &quot;}&quot;</p>
+<p class="code">direction ::= &quot;input&quot; | &quot;output&quot; | &quot;inout&quot; </p>
+<p class="code">bind ::= &quot;bind&quot; identifier [ parameter_list ] &quot;is&quot; qname &quot;{&quot; ( bind_member )+ &quot;}&quot;</p>
+<p class="code">bind_member ::= ( bind_default_def | bind_signal_def ) &quot;;&quot; </p>
+<p class="code">bind_default_def ::= &quot;default&quot; &quot;interface&quot; qname [ &quot;&lt;&quot; parameter_arg ( &quot;,&quot; parameter_arg )* &quot;&gt;&quot; ] </p>
+<p class="code">bind_signal_def ::= identifier signal_ref</p>
+<p class="code">enum ::= &quot;enum&quot; identifier &quot;{&quot; identifier ( &quot;,&quot; identifer )* &quot;;&quot; &quot;}&quot; </p>
+<p class="code">hdl_task ::= "hdl_task" identifier [parameter_list] task_arguments bare_module_def ";" </p>
+<p class="code">task_arguments ::= &quot;(&quot; task_argument ( &quot;,&quot; task_argument )* &quot;)</p>
+<p class="code">task_argument ::= ( &quot;input&quot; | &quot;output&quot; | &quot;inout&quot; ) [ width ] identifier</p>
+<p class="code">width ::= &quot;[&quot; integer &quot;:&quot; &quot;0&quot; &quot;]&quot; </p>
+<p class="code">hvl_task ::= &quot;hvl_task&quot; identifier task_arguments &quot;;&quot;</p>
+<p class="code">testbench ::= &quot;testbench&quot; identifier [ tb_parameter_list ] &quot;{&quot; ( import_decl )* ( tb_member )* &quot;}&quot;</p>
+<p class="code">tb_parameter_list ::= &quot;&lt;&quot; tb_parameter_decl ( &quot;,&quot; tb_parameter_decl )* &quot;&gt;&quot;</p>
+<p class="code">tb_parameter_decl ::= tb_parameter_type identifier</p>
+<p class="code">tb_parameter_type ::= primary_type | set_type</p>
+<p class="code">set_type ::= &quot;set&quot; &quot;of&quot;    primary_type </p>
+<p class="code">tb_member ::= ( intf_instantiation | bind_instantiation | for_loop )</p>
+<p class="code">intf_instantiation ::= &quot;interface&quot; identifier qname &quot;&lt;&quot; parameter_arg ( &quot;,&quot; parameter_arg )* &quot;&gt;&quot; &quot;;&quot;</p>
+<p class="code">parameter_arg ::= integer | string_literal | qname</p>
+<p class="code">bind_instantiation ::= &quot;bind&quot; identifier qname &quot;&lt;&quot; parameter_arg ( &quot;,&quot; parameter_arg )* &quot;&gt;&quot; &quot;;&quot;</p>
+<p class="code">for_loop ::= &quot;for&quot; primary_type identifier &quot;(&quot; for_loop_set &quot;)&quot; &quot;{&quot; ( for_member )* &quot;}&quot;</p>
+<p class="code">for_loop_set ::= parameter_reference | for_loop_set_literal</p>
+<p class="code">for_loop_set_literal ::= &quot;[&quot; for_set_member ( &quot;,&quot; for_set_member )* &quot;]&quot;</p>
+<p class="code">for_set_member ::= range | value </p>
+<p class="code">for_member ::= intf_instantiation | bind_instantiation </p>
+<p class="code">range ::= value &quot;..&quot; value </p>
+<p class="code">value ::= integer | string_literal | qname | var_ref </p>
+<p class="code">qname ::= identifier ( &quot;.&quot; identifier )*</p>
+<p class="code">wildcard ::= qname &quot;.*&quot; </p>
+<p class="code">identifier ::= ID | QUOTED_ID </p>
+<p class="code">qname ::= QUOTED_ID | QUOTED_NAME | ID ( &quot;.&quot; ID )* </p>
+<p class="code">wildcard ::= qname [ &quot;.&quot; &quot;*&quot; ] | QUOTED_QNAME_DOT_STAR </p>
+<p class="code">string_literal ::= STRING_LITERAL </p>
+<p class="code">integer ::= DECIMAL_LITERAL | HEX_LITERAL | OCTAL_LITERAL</p>
+<p class="code">var_ref ::= VAR | QUOTED_VAR_QNAME</p>
+<p>&nbsp;</p>
+<p class="code">ID ::= LETTER ( LETTER | DIGIT )*</p>
+<p class="code">LETTER ::= [ &quot;a&quot;-&quot;z&quot;, &quot;A&quot;-&quot;Z&quot;, &quot;_&quot; ]</p>
+<p class="code">DIGIT ::= [&quot;0&quot;-&quot;9&quot;, &quot;_&quot; ]</p>
+<p class="code">QUOTED_ID ::= &quot;\&quot;&quot; ID &quot;\&quot;&quot;</p>
+<p class="code">QUOTED_QNAME ::= &quot;\&quot;&quot; ID ( &quot;.&quot; ID )* &quot;\&quot;&quot;</p>
+<p class="code">QUOTED_QNAME_DOT_STAR ::= &quot;\&quot;&quot; ID ( &quot;.&quot; ID )* &quot;.*\&quot;&quot;</p>
+<p>&nbsp;</p>
+<p class="code">DECIMAL_LITERAL ::= ( &quot;-&quot; )? [ &quot;1&quot;-&quot;9&quot; ] ([ &quot;0&quot;-&quot;9&quot; ])*</p>
+<p class="code">HEX_LITERAL ::= ( &quot;-&quot; )? &quot;0&quot; [ &quot;x&quot;, &quot;X&quot; ] ([ &quot;0&quot;-&quot;9&quot;, &quot;a&quot;-&quot;f&quot;, &quot;A&quot;-&quot;F&quot; ])+</p>
+<p class="code">OCTAL_LITERAL ::= ( &quot;-&quot; )? &quot;0&quot; ([ &quot;0&quot;-&quot;7&quot; ])*</p>
+<p class="code">STRING_LITERAL ::= &quot;\&quot;&quot; ( (~[ &quot;\&quot;&quot;, &quot;\\&quot;, &quot;\n&quot;, &quot;\r&quot; ]) | ( &quot;\\&quot; [ &quot;b&quot;, &quot;t&quot;, &quot;n&quot;, &quot;f&quot;, &quot;r&quot;, &quot;\\&quot;, &quot;'&quot;, &quot;\&quot;&quot; ]) )* &quot;\&quot;&quot; </p>
+<p>&nbsp;</p>
+<p class="code">VAR ::= ( &quot;$&quot; ID ) | ( &quot;${&quot; ID &quot;}&quot; ) </p>
+<p class="code">NUMBER ::= DIGIT ( DIGIT )* </p>
+<p class="code">VAR_ID_MIX ::=  ( &lt;ID&gt; )? ( &lt;VAR&gt; ( &lt;NUMBER&gt; | &lt;VAR&gt; | &lt;ID&gt; )* )+</p>
+<p class="code">QUOTED_VAR_QNAME ::= &quot;\&quot;&quot; ( ID ( &quot;.&quot; ID )* &quot;.&quot; )? ( ID_VAR_MIX ( &quot;.&quot; ( ID | ID_VAR_MIX ) )* )+ &quot;\&quot;&quot; </p>
+<p>&nbsp;</p>
+<hr />
+<h2><a name="Footnotes" id="Footnotes"></a>Footnotes</h2>
+<ol>
+  <li><a name="Footnote1" id="Footnote1"></a>With the exception of asynchronous samples and drives.</li>
+  <li><a name="Footnote2" id="Footnote2"></a>Parameters declared as <span class="code">inout</span> should initialize the array element with the input to the task.</li>
+</ol>
+</body>
+</html>

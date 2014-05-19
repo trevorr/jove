@@ -1,0 +1,67 @@
+// TBD: const_expr instead of integer in signal_slice?
+
+goal ::= [ package_decl ] ( import_decl )* ( port_def | intf_def | bind_def | hdl_task_def | hvl_task_def | shell_decl )*
+
+package_decl ::= "package" qname ";"
+
+import_decl ::= "import" wildname ";"
+
+port_def ::= "port" id [ id ] "{" port_member* "}"
+port_member ::= [ direction ] id ";"
+direction ::= "input" | "output" | "inout"
+
+intf_def ::= "interface" id "{" intf_member* "}"
+intf_member ::= ( intf_default_def | clock_def | input_def | output_def | inout_def ) ";"
+intf_default_def ::= "default" ( sample_def | drive_def | module_def )
+sample_def ::= "sample" "(" edge "," integer ")"
+drive_def ::= "drive" "(" edge "," integer ")"
+edge ::= "posedge" | "negedge" | "anyedge"
+module_def ::= "module" qname
+clock_def ::= "clock" id [ module_def | hdl_node_def ]
+input_def ::= "input" [ vector_def ] id [ sample_def ] [ depth_def ] [ module_def | hdl_node_def ]
+output_def ::= "output" [ vector_def ] id [ drive_def ] [ module_def | hdl_node_def ]
+inout_def ::= "inout" [ vector_def ] id [ sample_def ] [ drive_def ] [ depth_def ] [ module_def | hdl_node_def ]
+vector_def ::= "[" integer ":" "0" "]"
+depth_def ::= "depth" integer
+hdl_node_def ::= "hdl_node" ( signal_ref | string_literal )
+signal_ref ::= signal_slice | signal_concat
+signal_slice ::= qname [ "[" integer [ ":" integer ] "]" ]
+signal_concat ::= "{" signal_slice ( "," signal_slice )* "}"
+
+bind_def ::= "bind" id "is" qname "{" bind_member* "}"
+bind_member ::= ( bind_default_def | signal_bind_def ) ";"
+bind_default_def ::= "default" ( default_intf_def )
+default_intf_def ::= "interface" qname
+signal_bind_def ::= id signal_ref
+
+hdl_task_def ::= "hdl_task" id "(" [ task_arg ( "," task_arg )* ] ")" qname ";"
+hvl_task_def ::= "hvl_task" id "(" [ task_arg ( "," task_arg )* ] ")" ";"
+task_arg ::= direction [ arg_type ] [ vector_def ] id
+arg_type ::= "bit" | "integer"
+
+shell_decl ::= "shell" id "{" shell_member* "}"
+shell_member ::= wildname ";"
+
+id ::= ID | QUOTED_ID
+qname ::= QUOTED_ID | QUOTED_NAME | ID ( "." ID )*
+wildname ::= qname [ "." "*" ] | QUOTED_QNAME_DOT_STAR
+integer ::= DECIMAL_LITERAL | HEX_LITERAL | OCTAL_LITERAL
+
+ID ::= LETTER ( LETTER | DIGIT )*
+LETTER ::= ["a"-"z", "A"-"Z", "_"]
+DIGIT ::= ["0"-"9", "_"]
+QUOTED_ID ::= "\"" ID "\""
+QUOTED_QNAME ::= "\"" ID ( "." ID )* "\""
+QUOTED_QNAME_DOT_STAR ::= "\"" ID ( "." ID )* ".*\""
+
+DECIMAL_LITERAL ::= ("-")? ["1"-"9"] (["0"-"9"])*
+HEX_LITERAL ::= ("-")? "0" ["x", "X"] (["0"-"9", "a"-"f", "A"-"F"])+
+OCTAL_LITERAL ::= ("-")? "0" (["0"-"7"])*
+STRING_LITERAL ::=
+    "\""
+    (
+        (~["\"", "\\", "\n", "\r"])
+    |
+        ( "\\" ["b", "t", "n", "f", "r", "\\", "'", "\""] )
+    )*
+    "\""

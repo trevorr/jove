@@ -1,0 +1,20 @@
+package testpkg.ports;
+
+port MyPort
+{
+    a;
+    b;
+    c;
+    d;
+    e;
+    f;
+    q;
+    x;
+}
+
+port RxPort TxPort
+{
+    input clk;
+    input ctl;
+    input data;
+}

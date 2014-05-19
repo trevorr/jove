@@ -1,0 +1,16 @@
+<!-- Ant definitions for Jove interface generator -->
+<project name="ifgen-taskdef" basedir=".">
+
+    <target name="ifgen-taskdef">
+        <taskdef name="ifgen" classname="com.newisys.dv.ifgen.ant.IfgenTask">
+            <classpath path="${jove-ifgen.classes}" />
+            <classpath path="${newisys-utils.classes}" />
+            <classpath path="${langschema.classes}" />
+            <classpath path="${langschema-java.classes}" />
+            <classpath path="${langschema-jove.classes}" />
+            <classpath path="${jove.classes}" />
+            <classpath path="${randsolver.classes}" />
+        </taskdef>
+    </target>
+
+</project>

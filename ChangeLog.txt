@@ -1,0 +1,23 @@
+Jove 1.1 (Oct 22 2006)
+    jove-ifgen
+        Added parameterized hdl tasks
+
+Jove 1.0.2 (Dec 21 2005)
+    jove-ifgen 
+        Fixed IfgenWildname printing bug in SchemaObjectPrinter left in 1.0.1
+
+Jove 1.0.1 (Dec 20 2005)
+    jove
+        Use System.arraycopy rather than clone when copying BitVectors
+        Changed some OVA signatures to be compatible with pli4j changes below
+    jove-ifgen
+        Fixed IfgenWildname printing bug in SchemaObjectPrinter
+    langschema
+        Updated JavaDoc
+        Deprecated classes made obsolete in Java 5.0
+    pli4j
+        Changed OVA methods to use 64 bit quantities to pass user data. This
+            makes g++ happy when compiling in 64 bit mode.
+
+Jove 1.0 (Oct 20 2005)
+    Initial Release

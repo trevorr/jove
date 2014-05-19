@@ -1,0 +1,78 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1" />
+<title>Jove Quick Start Guide</title>
+<style type="text/css">
+<!--
+.code {
+	font-family: "Courier New", Courier, monospace;
+	font-size: 10pt;
+}
+-->
+</style>
+</head>
+<body>
+<h1>Jove Quick Start Guide</h1>
+<p>Copyright &copy; 2005 Newisys, Inc. Licensed under the <a href="http://opensource.org/licenses/osl-2.0.php">Open Software License version 2.0</a>.</p>
+<p>Product and company names mentioned herein may be trademarks of their respective owners.</p>
+<p>Last updated 10/19/05</p>
+<h2>Overview</h2>
+<p>The purpose of this document is to describe how to run the sample programs provided with Jove as quickly as possible. For more in-depth Jove information, please refer to the Jove user documentation.</p>
+<h2>Requirements</h2>
+<p>To run the any of samples, you will need the following software installed:</p>
+<ul>
+  <li>A supported operating system
+    <ul>
+      <li>Linux (any distribution supported by a Java 5.0 JDK should work)</li>
+      <li>Microsoft Windows (2000, XP, or later) with the <a href="http://www.cygwin.com">Cygwin</a> environment</li>
+      <li>Apple Mac OS X</li>
+    </ul>
+  </li>
+  <li>A Java (J2SE) 5.0 JDK</li>
+  <li>GNU Make</li>
+</ul>
+<p>Additionally, the Verilog/non-behavioral samples (and3, and3param) require:</p>
+<ul>
+  <li> A supported Verilog simulator
+    <ul>
+      <li><a href="http://www.synopsys.com/products/simulation/simulation.html">Synopsys VCS</a></li>
+      <li><a href="http://www.pragmatic-c.com/gpl-cver/">Pragmatic C GPL Cver</a><sup><a href="#Footnote1">1</a></sup></li>
+    </ul>
+  </li>
+  <li>GCC C++ compiler</li>
+</ul>
+<h2>Downloading</h2>
+You can download the binary distribution of Jove <a href="http://sourceforge.net/project/showfiles.php?group_id=147417">here</a>. The binary distribution will have a filename of the form <span class="code">jove-dist-1.0.zip</span>. Unzipping this file will produce the following directory structure:
+<pre class="code">jove-dist-1.0/
+    bin/
+    docs/
+    native/
+    samples/
+    tutorial/</pre>
+<h2>Environment Variables</h2>
+<p>To run the sample programs, you will need to have the <span class="code">JAVA_HOME</span> environment variable set to the root of your Java installation (i.e. <span class="code">${JAVA_HOME}/bin/java</span> should exist). To run the and3 and and3param examples, you will also need to set the appropriate environment variable for your simulator. If you're using VCS, set the <span class="code">VCS_HOME</span> environment variable to the root of your VCS installation (i.e. <span class="code">${VCS_HOME}/bin/vcs</span> should exist). If you're using cver, set the <span class="code">CVER_HOME</span> environment variable to the root of your cver installation (i.e. <span class="code">${CVER_HOME}/bin/cver</span> should exist). You will also need to have the Java, GNU Make, and GCC binary directories in your path.</p>
+<h2>Running the 'behavioral' Example</h2>
+<p>A behavioral example is provided to show how Jove can be used to create behavioral models. The code for this example can be found in <span class="code">jove-dist-1.0/samples/src/com/newisys/samples/behavioral</span>. The example itself merely forks two threads: one that places integers into a mailbox, and one that consumes integers from the mailbox.</p>
+<p>To run the behavioral example, you do not need a Verilog simulator installed. The following commands should run the example.</p>
+<pre class="code">    cd jove-dist-1.0/samples
+    make behavioral</pre>
+<h2>Running the 'and3' Example</h2>
+<p>The 'and3' example is provided to show how to connect Jove to a Verilog simulator. The code for this example can be found in<span class="code"> jove-dist-1.0/samples/src/com/newisys/samples/and3</span>. In this example, the DUT being simulated is a simple 3-input AND gate. The testbench exhaustively tests the DUT, then generates constrained random stimulus.</p>
+<p>To run the 'and3' example, you need a copy of VCS or cver. The following commands run the example using VCS. Substitute &quot;cver&quot; for &quot;vcs&quot; to run the example with the cver simulator.</p>
+<pre class="code">    cd jove-dist-1.0/samples
+    make SIMULATOR=vcs and3</pre>
+<h2>Running the 'and3param' Example</h2>
+<p>The 'and3param' example is identical to the 'and3' example except that the 'and3' Verilog module is instantiated twice in the top-level Verilog file. The parameterization features of the ifgen tool are used to allow the testbench to access signals in both DUTs with a minimum of change to the ifgen specification. The code for this example can be found in<span class="code"> jove-dist-1.0/samples/src/com/newisys/samples/and3param</span>. The testbench exhaustively tests the DUTs, then generates constrained random stimulus. </p>
+<p>To run the 'and3param' example, you need a copy of VCS or cver. The following commands  run the example using cver. Substitute &quot;vcs&quot; for &quot;cver&quot; to run the example with the VCS simulator.</p>
+
+<pre class="code">    cd jove-dist-1.0/samples
+    make SIMULATOR=cver and3param</pre>
+<h2>Footnotes</h2>
+<ol>
+  <li><a name="Footnote1" id="Footnote1"></a>
+    To run Jove applications with cver, a patch must be applied to the cver source code. See the Jove FAQ for details.
+  </li>
+</ol>
+</body>
+</html>

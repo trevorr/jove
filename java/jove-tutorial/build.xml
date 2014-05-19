@@ -1,0 +1,38 @@
+<?xml version="1.0"?>
+<project name="Jove Tutorial" default="compile" basedir=".">
+    <property name="src" location="src" />
+    <property name="gensrc" location="gensrc" />
+    <property name="bin" location="bin" />
+    <property name="dist" location="dist" />
+    <property name="ifgen-tstamp" location="ifgen.tstamp" />
+    <property name="ifgen-list" location="ifgen.lst" />
+    <property name="build.sysclasspath" value="last" />
+
+    <import file="../jove-defs.xml" />
+
+    <target name="init">
+        <tstamp />
+        <mkdir dir="${bin}" />
+    </target>
+
+    <target name="ifgen" depends="init,ifgen-taskdef">
+        <ifgen srcroot="${gensrc}" tstamp="${ifgen-tstamp}" filelist="${ifgen-list}" genshells="true">
+            <fileset dir="${src}" includes="**/*.if" />
+        </ifgen>
+    </target>
+
+    <target name="compile" depends="ifgen">
+        <javac srcdir="${src}:${gensrc}" destdir="${bin}" source="1.5" debug="true">
+            <classpath path="${jove.classes}" />
+        </javac>
+    </target>
+
+    <target name="clean">
+        <delete dir="${bin}" />
+        <delete includeemptydirs="true">
+            <fileset dir="${gensrc}" includes="**/*" />
+        </delete>
+        <delete file="${ifgen-tstamp}" />
+        <delete file="${ifgen-list}" />
+    </target>
+</project>

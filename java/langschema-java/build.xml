@@ -1,0 +1,36 @@
+<project name="langschema-java" default="compile" basedir=".">
+    <property environment="env" />
+    <property name="src" location="src" />
+    <property name="bin" location="bin" />
+    <property name="dist" location="dist" />
+    <property name="build.sysclasspath" value="last" />
+
+    <target name="init">
+        <tstamp />
+        <mkdir dir="${bin}" />
+    </target>
+
+    <target name="compile" depends="init">
+        <javac srcdir="${src}" destdir="${bin}" source="1.5" debug="true">
+            <classpath path="../langschema/bin" />
+            <classpath path="../newisys-utils/bin" />
+        </javac>
+    </target>
+
+    <target name="docs">
+        <mkdir dir="${dist}/docs" />
+        <javadoc packagenames="com.newisys.*" sourcepath="${src}" destdir="${dist}/docs" source="1.5">
+            <link href="http://java.sun.com/j2se/1.5.0/docs/api/" />
+        </javadoc>
+    </target>
+
+    <target name="dist" depends="compile">
+        <mkdir dir="${dist}/lib" />
+        <jar jarfile="${dist}/lib/langschema-java.jar" basedir="${bin}" manifest="manifest.mf" />
+    </target>
+
+    <target name="clean">
+        <delete dir="${bin}" />
+        <delete dir="${dist}" />
+    </target>
+</project>

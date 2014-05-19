@@ -1,0 +1,42 @@
+package com.newisys.tutorial.memctrl;
+
+port MemctrlPort
+{
+    input clk;
+    output rw;
+    output addr;
+    input datain;
+    output dataout;
+}
+
+interface MemctrlIntf
+{
+    default module memctrl_test_top;
+    default sample(posedge, -1);
+    default drive(posedge, 1);
+    
+    clock clk;
+    
+    output readwrite hdl_node memctrl_test_top.rw;
+    output[7:0] address hdl_node memctrl_test_top.addr;
+    
+    input[7:0] datain hdl_node memctrl_test_top.dataout;
+    output[7:0] dataout hdl_node memctrl_test_top.datain;
+}
+
+bind MemctrlBind is MemctrlPort
+{
+    default interface MemctrlIntf;
+
+    clk clk;
+    rw readwrite;
+    addr address;
+    datain datain;
+    dataout dataout;
+}
+
+testbench MemctrlIfgenTB
+{
+    import com.newisys.tutorial.memctrl.*;
+}
+

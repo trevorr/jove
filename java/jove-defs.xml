@@ -1,0 +1,17 @@
+<!-- Ant definitions for Jove source distribution -->
+<project name="jove-defs" basedir=".">
+
+    <dirname property="jove-defs.basedir" file="${ant.file.jove-defs}" />
+    <property name="jove.src.home" location="${jove-defs.basedir}" />
+
+    <property name="jove.classes" location="${jove.src.home}/jove/bin" />
+    <property name="jove-ifgen.classes" location="${jove.src.home}/jove-ifgen/bin" />
+    <property name="langschema.classes" location="${jove.src.home}/langschema/bin" />
+    <property name="langschema-java.classes" location="${jove.src.home}/langschema-java/bin" />
+    <property name="langschema-jove.classes" location="${jove.src.home}/langschema-jove/bin" />
+    <property name="newisys-utils.classes" location="${jove.src.home}/newisys-utils/bin" />
+    <property name="randsolver.classes" location="${jove.src.home}/randsolver/bin" />
+
+    <import file="${jove.src.home}/jove-ifgen/ifgen-taskdef.xml" />
+
+</project>

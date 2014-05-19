@@ -1,0 +1,126 @@
+package testpkg.intfs;
+
+interface MyIntf
+{
+    default sample(posedge,-1);
+    default drive(posedge,1);
+    default module dut.module;
+
+    clock clk hdl_node dut.clk;
+    input[7:0] sig1 depth 4; // node is dut.module.sig1
+    output sig2 hdl_node dut.sig2;
+    inout sig3 hdl_node dut.sig3;
+    input sig4 sample(anyedge,-2) hdl_node dut.sig4; // ddr input
+    output sig5 drive(anyedge,2) hdl_node dut.sig5; // ddr output
+    inout sig6 sample(posedge,-2) drive(posedge,2) hdl_node dut.sig6;
+}
+
+interface MyIntf2
+{
+    default sample(posedge,-1);
+
+    clock clk hdl_node dut.clk;
+    input x hdl_node dut.x;
+    input "is" hdl_node "dut.interface.is"; // stupid signal name
+}
+
+// Parameterized section
+enum testenum
+{
+	  hi, bye, howdy;
+}
+
+port ParamPort
+{
+	a;
+}
+
+interface MyIntfIntParam<integer dut>
+{
+    default sample(posedge,-1);
+    input x hdl_node "dut$dut.x";
+}
+
+bind MyBindIntParam<integer dut> is ParamPort
+{
+  	default interface MyIntfIntParam<$dut>;
+  	a x;
+}
+
+interface MyIntfEnumParam<testenum dut>
+{
+    default sample(posedge,-1);
+    input x hdl_node "dut$dut.x";
+}
+
+bind MyBindEnumParam<testenum dut> is ParamPort
+{
+  	default interface MyIntfEnumParam<$dut>;
+  	a x;
+}
+
+interface MyIntfStringParam<string dut>
+{
+    default sample(posedge,-1);
+    input x hdl_node "dut$dut.x";
+}
+
+bind MyBindStringParam<string dut> is ParamPort
+{
+  	default interface MyIntfStringParam<$dut>;
+  	a x;
+}
+
+
+interface RxIntf
+{
+    default module dut.tx;
+    default sample(posedge,-1);
+
+    clock clk;
+    input ctl;
+    input data;
+}
+
+interface TxIntf
+{
+    default module dut.rx;
+    default drive(posedge,1);
+
+    clock ref_clk hdl_node test_top.clk;
+    output clk;
+    output ctl;
+    output[15:0] data;
+}
+
+hdl_task HDLTask(input[7:0] a, input b, output c) dut.mytask;
+hdl_task HDLTaskParam<integer x, string y, testenum z>(input[7:0] a, inout b) "dut$x.$y.$z.footask";
+
+hvl_task MyTask(input a, output b);
+
+// testbench could be parameterized like this: <set of integer x>
+testbench jove_test
+{
+    import testpkg.intfs.*;
+    for integer i ([0..1])
+    {
+        interface IntfInt MyIntfIntParam<$i>;
+        bind BindInt MyBindIntParam<$i>;
+    }
+
+	  // doesn't use entire range of testenum
+    for testenum i ([hi..bye])
+    {
+        interface IntfEnum MyIntfEnumParam<$i>;
+        bind BindEnum MyBindEnumParam<$i>;
+    }
+    
+    interface thisParamIntf MyIntfStringParam<"this">;
+    bind thisParamBind MyBindStringParam<"this">;
+    
+    hdl_task MyHDLTask HDLTaskParam<1, "foo", bye>;
+    for integer z ([0..2])
+    {
+    		hdl_task MyHDLTask2 HDLTaskParam<$z, "fooboo", bye>;
+    }
+}

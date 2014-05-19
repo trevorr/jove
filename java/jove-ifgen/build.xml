@@ -1,0 +1,55 @@
+<project name="jove-ifgen" default="compile" basedir=".">
+    <property environment="env" />
+    <property name="src" location="src" />
+    <property name="bin" location="bin" />
+    <property name="dist" location="dist" />
+    <property name="docs" location="docs" />
+    <property name="build.sysclasspath" value="last" />
+
+    <target name="init">
+        <tstamp />
+        <mkdir dir="${bin}" />
+    </target>
+
+    <target name="javacc" depends="init">
+        <javacc target="${src}/com/newisys/dv/ifgen/parser/IfgenParser.jj" javacchome="${env.JAVACC_HOME}" />
+    </target>
+
+    <target name="compile" depends="javacc">
+        <javac srcdir="${src}" destdir="${bin}" source="1.5" debug="true">
+            <classpath path="../newisys-utils/bin" />
+            <classpath path="../langschema/bin" />
+            <classpath path="../langschema-java/bin" />
+            <classpath path="../langschema-jove/bin" />
+            <classpath path="../jove/bin" />
+        </javac>
+    </target>
+
+    <target name="docs">
+        <mkdir dir="${docs}/api" />
+        <javadoc packagenames="com.newisys.*" sourcepath="${src}" destdir="${docs}/api" source="1.5">
+            <link href="http://java.sun.com/j2se/1.5.0/docs/api/" />
+        </javadoc>
+    </target>
+
+    <target name="dist" depends="compile">
+        <mkdir dir="${dist}/lib" />
+        <jar jarfile="${dist}/lib/jove-ifgen.jar" basedir="${bin}" manifest="manifest.mf" />
+    </target>
+
+    <target name="clean">
+        <delete dir="${bin}" />
+        <delete dir="${docs}/api" />
+        <delete>
+            <fileset dir="${src}/com/newisys/dv/ifgen/parser">
+                <include name="IfgenParser.java" />
+                <include name="IfgenParserConstants.java" />
+                <include name="IfgenParserTokenManager.java" />
+                <include name="ParseException.java" />
+                <include name="SimpleCharStream.java" />
+                <include name="Token.java" />
+                <include name="TokenMgrError.java" />
+            </fileset>
+        </delete>
+    </target>
+</project>

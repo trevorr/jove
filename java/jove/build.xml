@@ -1,0 +1,47 @@
+<project name="jove" default="compile" basedir=".">
+    <property environment="env" />
+    <property name="src" location="src" />
+    <property name="test" location="test" />
+    <property name="bin" location="bin" />
+    <property name="dist" location="dist" />
+    <property name="build.sysclasspath" value="last" />
+
+    <target name="init">
+        <tstamp />
+        <mkdir dir="${bin}" />
+    </target>
+
+    <target name="compile" depends="init">
+        <javac srcdir="${src}" destdir="${bin}" source="1.5" excludes="**/package-info.java" debug="true">
+            <classpath path="../newisys-utils/bin" />
+        </javac>
+    </target>
+
+    <target name="docs">
+        <mkdir dir="docs/api" />
+        <javadoc access="public" author="false" classpath="." destdir="docs/api" nodeprecated="false" nodeprecatedlist="false" noindex="false" nonavbar="false" notree="false" source="1.5" packagenames="com.newisys.dv,com.newisys.eventsim,com.newisys.random,com.newisys.verilog.util,com.newisys.randsolver.annotation,com.newisys.ova" excludepackagenames="com.newisys.behsim,com.newisys.dv.signalinterface,com.newisys.threadmarshal,com.newisys.verilog,com.newisys.verilog.pli" sourcepath="../newisys-utils/src:../langschema-jove/src:../langschema-java/src:../langschema/src:../randsolver/src:../jove/src:src" splitindex="true" use="true" version="true" windowtitle="Jove API">
+            <link href="http://java.sun.com/j2se/1.5.0/docs/api/" />
+            <fileset dir="../randsolver/src/com/newisys/randsolver" >
+                <include name="package-info.java" />
+                <include name="RandomHooks.java" />
+                <include name="RandomMapper.java" />
+                <include name="RandomMapperFactory.java" />
+                <include name="RandomMapperRegistry.java" />
+                <include name="Solver.java" />
+                <include name="InvalidConstraintException.java" />
+                <include name="InvalidRandomVarException.java" />
+                <include name="UnsolvableConstraintException.java" />
+            </fileset>
+        </javadoc>
+    </target>
+
+    <target name="dist" depends="compile,docs">
+        <mkdir dir="${dist}/lib" />
+        <jar jarfile="${dist}/lib/jove.jar" basedir="${bin}" manifest="manifest.mf" />
+    </target>
+
+    <target name="clean">
+        <delete dir="${bin}" />
+        <delete dir="${dist}" />
+    </target>
+</project>

@@ -1,0 +1,80 @@
+/*
+ * PLI4J - A Java (TM) Interface to the Verilog PLI
+ * Copyright (C) 2003 Trevor A. Robinson
+ * Java is a registered trademark of Sun Microsystems, Inc. in the U.S. or
+ * other countries.
+ *
+ * Licensed under the Academic Free License version 2.0 (the "License"); you
+ * may not use this file except in compliance with the License. You should
+ * have received a copy of the License along with this software; if not, you
+ * may obtain a copy of the License at
+ *
+ * http://opensource.org/licenses/afl-2.0.php
+ *
+ * This software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+ * CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
+package com.newisys.verilog;
+
+import java.util.Iterator;
+
+/**
+ * Represents a module.
+ * 
+ * @author Trevor Robinson
+ */
+public interface VerilogModule
+    extends VerilogDeclObject, VerilogScope
+{
+    // properties
+    boolean isTopModule();
+
+    boolean isCellInstance();
+
+    boolean isProtected();
+
+    int getTimeUnit();
+
+    int getTimePrecision();
+
+    NetType getDefNetType();
+
+    UnconnDriveType getUnconnDrive();
+
+    ModuleDelayMode getDefDelayMode();
+
+    int getDefDecayTime();
+
+    String getDefName();
+
+    String getDefFile();
+
+    int getDefLineNo();
+
+    // objects
+    Iterator<VerilogPort> getPorts();
+
+    Iterator<VerilogIODecl> getIODecls();
+
+    Iterator<VerilogNet> getNets();
+
+    Iterator<VerilogParameter> getParameters();
+
+    Iterator<VerilogSpecParam> getSpecParams();
+
+    Iterator<VerilogParamAssign> getParamAssigns();
+
+    Iterator<VerilogPrimitive> getPrimitives();
+
+    Iterator<VerilogModule> getModules();
+
+    Iterator<VerilogContAssign> getContAssigns();
+
+    Iterator<VerilogProcedure> getProcesses();
+
+    Iterator<VerilogModPath> getModPaths();
+
+    Iterator<VerilogTchk> getTchks();
+}

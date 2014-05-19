@@ -1,0 +1,255 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1" />
+<title>Writing Your First Jove Application</title>
+<style type="text/css">
+<!--
+.code-sample {
+	font-family: "Courier New", Courier, monospace;
+	color: #000000;
+	background-color: #CCFFCC;
+	width: 75%;
+	font-size: 10pt;
+	font-style: normal;
+	text-align: left;
+	margin-left: 1in;
+	white-space: pre;
+}
+.code {
+	font-family: "Courier New", Courier, monospace;
+	font-size: 10pt;
+}
+-->
+</style>
+</head>
+<body>
+<h1>Writing Your First Jove Application</h1>
+<p>Copyright &copy; 2005 Newisys, Inc. Licensed under the <a href="http://opensource.org/licenses/osl-2.0.php">Open Software License version 2.0</a>.</p>
+<p>Product and company names mentioned herein may be trademarks of their respective owners.</p>
+<p>Last updated 10/19/05</p>
+<h2>Introduction</h2>
+<p>The purpose of this document is to help guide you through writing your first application using Jove. The example we'll be using in this document is that of  a memory interface. The actual memory will be modeled in Verilog. </p>
+<p>To begin, let's look at the memory interface:</p>
+<table width="77%" border="0">
+  <tr>
+    <td width="72%" valign="top"><p>On the positive edge of each clock, the memory examines the R/W signal. If it is logic high, the memory will drive the data at address Addr onto the data bus. If the R/W signal is logic low, the memory will latch the data on the bus and store it in the memory at address Addr. Thus we have the following: </p>
+      <table width="100%" border="2">
+        <tr>
+          <th width="17%" scope="col">Signal Name </th>
+          <th width="14%" scope="col">Width</th>
+          <th width="17%" scope="col">Direction</th>
+          <th width="52%" scope="col">Description</th>
+        </tr>
+        <tr>
+          <td>rw</td>
+          <td>1</td>
+          <td>Input</td>
+          <td>This signal should be driven high to read the memory and low to write it. </td>
+        </tr>
+        <tr>
+          <td>addr</td>
+          <td>8</td>
+          <td>Input</td>
+          <td>The address to read or write. </td>
+        </tr>
+        <tr>
+          <td>datain</td>
+          <td>8</td>
+          <td>Input</td>
+          <td>The data to write when the rw signal is low </td>
+        </tr>
+        <tr>
+          <td>dataout</td>
+          <td>8</td>
+          <td>Output</td>
+          <td>The data read from addr when the rw signal is high </td>
+        </tr>
+        <tr>
+          <td>clk</td>
+          <td>1</td>
+          <td>Input</td>
+          <td>The clock used by the memory. All memory actions take place on the positive edge of the clock. </td>
+        </tr>
+      </table></td>
+    <td width="28%"><div align="center"><img src="memblk.png" alt="Memory Block Diagram" width="228" height="192" /></div></td>
+  </tr>
+</table>
+<p>From this information, we create a Verilog test top that instantiates the DUT representing our memory. The test top is shown below.</p>
+<pre class="code-sample">module memctrl_test_top;
+    reg SystemClock;
+    wire[7:0] addr;
+    wire[7:0] datain;
+    wire[7:0] dataout;
+    wire rw;
+    wire clk;
+	
+    assign clk = SystemClock;
+	
+    initial begin
+        SystemClock = 0;
+		
+        forever begin
+            #100 SystemClock = ~SystemClock;
+        end
+    end
+	
+    memory dut(clk, rw, addr, datain, dataout);
+endmodule</pre>
+<h2>Writing the Jove-ifgen Specification</h2>
+The above interface information is sufficient to write a jove-ifgen specification. We start the specification by declaring the package in which our code will reside.
+<p class="code-sample">package com.newisys.tutorial.memctrl;</p>
+<p>Next  we'll specify a port for this interface. A port describes the members of an interface abstractly -- no signal widths are specified. The direction for each port is optional, but recommended as it provides some additional compile-time checking when accessing the signals in the testbench.</p>
+<pre class="code-sample">port MemctrlPort
+{
+    input clk;
+    input rw;
+    input addr;
+    input datain;
+    output dataout;
+}	  </pre>
+<p align="left">Now we create an ifgen interface. The ifgen interface declares which Verilog signals will be used and how they will be sampled and driven. In the interface, signal directions are relative to the testbench. Thus, <span class="code">readwrite</span> is declared as an output. Also note that the names of interface signals need not be identical to either the Verilog signal names with which they're associated or the port signals to which we'll eventually bind them.</p>
+<p align="left">This interface  specifies default sample and drive specifications. This means that input and inout signals in this interface will be sampled on the positive edge of the clock with a skew of -1. Output and inout signals will be driven on the positive edge of the clock with a skew of 1.</p>
+<pre class="code-sample">interface MemctrlIntf
+{
+    default sample(posedge, -1);
+    default drive(posedge, 1);
+	
+    clock clk hdl_node memctrl_test_top.clk;
+    
+    output readwrite hdl_node memctrl_test_top.rw;
+    output[7:0] address memctrl_test_top.addr;
+	
+    input[7:0] datain hdl_node memctrl_test_top.dataout;
+    output[7:0] dataout hdl_node memctrl_test_top.datain;
+}
+</pre>
+<p>Now that we've defined an interface and a port, we need to bind them together. To do this, we create a bind. Since all of the signals we're using in this bind exist in the <span class="code">MemctrlIntf</span> interface, we declare it to be the default interface. The rest of the bind is just associating port signals (listed first) with interface signals (listed second).</p>
+<pre class="code-sample">bind MemctrlBind is MemctrlPort
+{
+    default interface MemctrlIntf;
+
+    clk clk;
+    rw readwrite;
+    addr address;
+    datain datain;
+    dataout dataout;
+}
+</pre>
+<p>Finally, we combine all of these elements in a testbench declaration. The import statement directs ifgen to take all of the binds, interfaces, etc. of this package into account when generating Java and Verilog code.</p>
+<pre class="code-sample">testbench MemctrlIfgenTB
+{
+    import com.newisys.tutorial.memctrl.*;
+}
+</pre>
+<p>Now that we have an ifgen specification, we use the jove-ifgen tool to parse it and generate Java classes we will use in our testbench and a Verilog shell file that we'll compile along with our other Verilog files. The rest of this document will assume the following directory structure:</p>
+<pre class="code">jove-dist-1.0/
+    bin/
+    docs/
+    jove-tutorial/
+        bin/
+        src/
+            com/
+                newisys/
+                    tutorial/
+                        memctrl/
+                            memctrl.if
+</pre>
+<p>To run jove-ifgen change directory to the <span class="code">jove-dist-1.0/jove-tutorial</span> directory and run the following command:</p>
+<pre class="code-sample">../bin/jove-ifgen -srcroot gensrc -tstamp ifgen.tstamp -filelist ifgen.list -dir src -genshells</pre>
+<p>This will result in a directory named <span class="code">gensrc</span> being created, which contains the generated Java and Verilog source code. Specifically, the following files will be generated:</p>
+<table width="86%" border="1" cellpadding="2" cellspacing="2">
+  <tr>
+    <th scope="col">Filename</th>
+    <th scope="col">Description</th>
+  </tr>
+  <tr>
+    <td class="code">gensrc/com/newisys/tutorial/memctrl/MemctrlPort.java</td>
+    <td>Contains a public Signal member for each port signal. Users will receive an instance of this type via the MemctrlBind.INSTANCE member.</td>
+  </tr>
+  <tr>
+    <td class="code">gensrc/com/newisys/tutorial/memctrl/MemctrlIntf.java</td>
+    <td>Contains Signal members initialized to the respective Verilog signals. This class should not be referenced directly by user code.</td>
+  </tr>
+  <tr>
+    <td class="code">gensrc/com/newisys/tutorial/memctrl/MemctrlBind.java</td>
+    <td>Contains a static member INSTANCE of type MemctrlPort. It is through this port object that the testbench should communicate with Verilog signals.</td>
+  </tr>
+  <tr>
+    <td class="code">gensrc/com/newisys/tutorial/memctrl/MemctrlIfgenTB.java</td>
+    <td>In this example, this file is empty. If you had parameterized binds, this class would provide accessors for them based on the parameterization.</td>
+  </tr>
+  <tr>
+    <td class="code">gensrc/com/newisys/tutorial/memctrl/memctrl_shell.v</td>
+    <td>This file contains some Verilog glue to allow Jove to communicate with the Verilog simulator. It should be compiled alongside any other Verilog source code used to create a simulation executable.</td>
+  </tr>
+</table>
+<p>It should be noted that jove-ifgen can also be run from an Ant task. An example of this is in the <span class="code">jove-tutorial/build.xml</span> file.</p>
+<h2>Creating the Test Case</h2>
+<p>Now that we've generated classes that let us drive and sample the Verilog signals of our DUT, it's time to actually write a test. We'll create a class named <span class="code">MemctrlTestcase</span> the contains our test for the memory module. This class will extend <span class="code">com.newisys.dv.DVApplication</span>. Indeed, the main class of every Jove application we write will extend <span class="code">DVApplication</span>. When a class extends DVApplication, it is required to implement two methods:</p>
+<ul>
+  <li>A constructor that takes exactly one argument -- a <span class="code">com.newisys.dv.DVSimulation</span>.The constructor should invoke its superclass constructor and do little or nothing else. Specifically, signals should not be accessed in the constructor since they are not yet initialized.</li>
+  <li>A <span class="code">run</span> method. The <span class="code">run</span> method is equivalent to a normal application's <span class="code">main</span> method.</li>
+</ul>
+<p>Given this, our test case currently looks like the following:</p>
+<pre class="code-sample">package com.newisys.tutorial.memctrl;
+ 
+import com.newisys.dv.DVApplication;
+import com.newisys.dv.DVSimulation;
+ 
+public class MemctrlTestcase extends DVApplication
+{
+    public MemctrlTestcase(DVSimulation dvSim)
+    {
+        super(dvSim);
+    }
+	
+    public void run()
+    {
+        // Testcase code will go here
+    }
+}
+</pre>
+<p>Now let's add some meat to it. We're going to write the data 0x4E to location 0xDD in the memory and then read it back, checking that we read what we wrote. Note that the sample method returns a <span class="code">BitVector</span> object. BitVectors allow 4-state values (0, 1, X, Z). They are sometimes required, but in many instances we can simply use int and long types and avoid the heavyweight <span class="code">BitVector</span> objects. </p>
+<pre class="code-sample">public void run()
+{
+    MemctrlPort bind = MemctrlBind.INSTANCE;
+	
+    // write 0x4E to address 0xDD
+    bind.rw.drive(0);         // drive R/W low to initiate a write
+    bind.addr.drive(0xDD);    // write to address 0x77
+    bind.dataout.drive(0x4E); // write the value 0x4E
+	
+    // advance to the next clock and write 0x22 to addr 0xDC
+    bind.clk.syncEdge(EdgeSet.POSEDGE);
+    bind.addr.drive(0xDC);    // write to address 0xDC
+    bind.dataout.drive(0x22); // write the value 0x22
+	
+    // advance to the next clock and read addr 0xDD
+    bind.clk.syncEdge(EdgeSet.POSEDGE);
+	
+    bind.rw.drive(1);          // drive R/W high to initiate a read
+    bind.addr.drive(0xDD);     // read from address 0x77
+	
+    // due to -1 skew, we wait two cycles before sampling dataout
+    bind.clk.syncEdge(EdgeSet.POSEDGE);
+    bind.clk.syncEdge(EdgeSet.POSEDGE);
+    final BitVector value = bind.datain.sample();
+	
+    if (value.intValue() != 0x4E)
+    {
+        throw new AssertionError("Bad data. Expected: 8'h4e, Actual: "
+            + value);
+    }
+}</pre>
+<h2>Running the Simulation</h2>
+Now that we have a test case, all that's left is to run a simulation. How to link the Jove PLI calls into a simulator is beyond the scope of this document, but when running the simulation, there are two important plus-args that we have to provide:
+<ul>
+  <li><span class="code">+javaclass=&lt;class&gt;</span>, which specifies which DVApplication should be run. <span class="code">class</span> is a fully qualified class name. In our example, we would pass the argument <span class="code">+javaclass=com.newisys.tutorial.memctrl.MemctrlTestcase</span>.</li>
+  <li><span class="code">+javaclasspath=&lt;classpath&gt;</span>, which specifies the classpath to be used by the JVM. <span class="code">classpath</span> has the exact format as the java <span class="code">-classpath</span> argument (a colon delimited list of directories and/or JAR files). In most cases (including this example), this will include all of the JARs found in the <span class="code">jove-dist-1.0/bin</span> directory.</li>
+</ul>
+<p>Finally, we need to create an instantiation of the shell in the Verilog test top file. This means adding a line like the following:</p>
+<pre class="code-sample">MemctrlIfgenTB vshell(); </pre>
+<p>And that's all there is to it! Remember to compile the generated shell file along with the rest of your Verilog source. This full example is available in <span class="code">jove-dist-1.0/tutorial</span> along with a makefile that supports the VCS and cver simulators.</p>
+</body>
+</html>

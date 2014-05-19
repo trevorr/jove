@@ -1,0 +1,36 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1" />
+<title>Building Jove From Source</title>
+</head>
+
+<body>
+<h1>Building Jove from Source</h1>
+<p>There are two general approaches to building Jove from the source code. The first is using the supplied build.xml to compile it using Ant. The other involves importing the projects into the <a href="http://www.eclipse.org">Eclipse IDE</a> and building it there. For both methods you'll need to do the following:</p>
+<ul>
+    <li>Download the jove-src-1.0.zip file and unzip it into a directory.</li>
+    <li>Download and install  <a href="http://ant.apache.org">Apache Ant</a> (the Jove build has been tested with version 1.6.5).</li>
+    <li>Download and install <a href="http://javacc.dev.java.net">JavaCC</a> (the Jove build requires at least 4.0beta1).</li>
+    <li>Set the JAVACC_HOME environment variable to the root directory of your javacc installation (i.e. ${JAVACC_HOME}/bin/javacc should exist).</li>
+</ul>
+<h2>Compiling using Ant</h2>
+<p>To compile the source code with Ant, go to the directory where you unzipped the Jove source code and enter the directory named java. Typing the command &quot;ant&quot; will compile the Jove source code. </p>
+<h2>Compiling using Eclipse</h2>
+<p>To compile the source code with Eclipse,   you will need a version of Eclipse that supports Java 5.0. The recommended Eclipse version is 3.1. Some newer 3.2 milestones contain bugs that prevent Jove from compiling. Once you've installed Eclipse, run it and perform the following tasks:</p>
+<ul>
+    <li>Go to  Window-&gt;Preferences-&gt;Java-&gt;Build Path-&gt;Classpath Variables and add a variable named ANT_HOME. This variable should point to the root of your ant installation (i.e. ${ANT_HOME}/bin/ant should exist).</li>
+    <li>Go to Window-&gt;Preferences-&gt;Java-&gt;Compiler and change the Compiler compliance level to 5.0.</li>
+    <li>Choose File-&gt;Import and select Existing Projects into Workspace. Click &quot;Next&quot;.
+        <ul>
+            <li>In the &quot;Select root directory&quot; field, enter the directory into which you unzipped the Jove source distribution.
+              <ul>
+                    <li>Check all the available projects (there should be 9) and click &quot;Finish&quot;.  </li>
+              </ul>
+          </li>
+        </ul>
+    </li>
+    <li>The projects will try to build as they are imported. Due to the import order, this will result in many of the projects containing errors. To correct this, select Project-&gt;Clean-&gt;Clean all projects and click &quot;OK&quot;. Eclipse will clean all projects in the workspace and rebuild them. After the rebuild is complete, there should be no errors in the Jove projects.</li>
+</ul>
+</body>
+</html>

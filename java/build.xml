@@ -1,0 +1,73 @@
+<project name="jove-src" default="compile" basedir=".">
+    <property environment="env" />
+    <property name="joveroot" value="." />
+    <property name="build.sysclasspath" value="last" />
+
+    <target name="init">
+        <tstamp />
+    </target>
+
+    <target name="compile" depends="jove, jove-docs, jove-ifgen, randsolver, jove-samples, jove-tutorial" />
+
+    <target name="newisys-utils" depends="init">
+        <echo message="Compiling newisys-utils" />
+        <ant dir="${joveroot}/newisys-utils" target="compile" inheritAll="false" />
+    </target>
+
+    <target name="jove" depends="init, newisys-utils">
+        <echo message="Compiling jove" />
+        <ant dir="${joveroot}/jove" target="compile" inheritAll="false" />
+    </target>
+
+    <target name="jove-docs" depends="jove, randsolver" >
+        <echo message="Generating Jove Documentation" />
+        <ant dir="${joveroot}/jove" target="docs" inheritAll="false" />
+    </target>
+
+    <target name="langschema" depends="init, newisys-utils">
+        <echo message="Compiling langschema" />
+        <ant dir="${joveroot}/langschema" target="compile" inheritAll="false" />
+    </target>
+
+    <target name="langschema-java" depends="init, newisys-utils, langschema">
+        <echo message="Compiling langschema-java" />
+        <ant dir="${joveroot}/langschema-java" target="compile" inheritAll="false" />
+    </target>
+
+    <target name="langschema-jove" depends="init, newisys-utils, langschema, langschema-java">
+        <echo message="Compiling langschema-jove" />
+        <ant dir="${joveroot}/langschema-jove" target="compile" inheritAll="false" />
+    </target>
+
+    <target name="jove-ifgen" depends="init, jove, newisys-utils, langschema, langschema-java, langschema-jove" >
+        <echo message="Compiling jove-ifgen" />
+        <ant dir="${joveroot}/jove-ifgen" target="compile" inheritAll="false" />
+    </target>
+
+    <target name="randsolver" depends="init, jove, langschema, langschema-java, langschema-jove">
+        <echo message="Compiling randsolver" />
+        <ant dir="${joveroot}/randsolver" target="compile" inheritAll="false" />
+    </target>
+
+    <target name="jove-samples" depends="init, jove-ifgen, jove, randsolver">
+        <echo message="Cleaning jove-samples" />
+        <ant dir="${joveroot}/jove-samples" target="compile" inheritAll="false" />
+    </target>
+
+    <target name="jove-tutorial" depends="init, jove-ifgen, jove, randsolver">
+        <echo message="Cleaning jove-tutorial" />
+        <ant dir="${joveroot}/jove-tutorial" target="compile" inheritAll="false" />
+    </target>
+
+    <target name="clean" >
+        <ant dir="${joveroot}/jove-ifgen" target="clean" inheritAll="false" />
+        <ant dir="${joveroot}/jove-samples" target="clean" inheritAll="false" />
+        <ant dir="${joveroot}/jove-tutorial" target="clean" inheritAll="false" />
+        <ant dir="${joveroot}/jove" target="clean" inheritAll="false" />
+        <ant dir="${joveroot}/langschema" target="clean" inheritAll="false" />
+        <ant dir="${joveroot}/langschema-java" target="clean" inheritAll="false" />
+        <ant dir="${joveroot}/langschema-jove" target="clean" inheritAll="false" />
+        <ant dir="${joveroot}/newisys-utils" target="clean" inheritAll="false" />
+        <ant dir="${joveroot}/randsolver" target="clean" inheritAll="false" />
+    </target>
+</project>

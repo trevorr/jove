@@ -1,0 +1,537 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta content="text/html; charset=us-ascii" http-equiv="content-type" />
+<title>Jove Constrained Random Solver</title>
+<style type="text/css">
+/*<![CDATA[*/
+.code { font-family: Courier New,Courier,monospace;
+font-size: 10pt;
+}
+/*]]>*/
+  </style>
+</head>
+<body>
+<h1>Jove Constrained Random Solver</h1>
+<p>Copyright &copy; 2005 Newisys, Inc. Licensed under the <a href="http://opensource.org/licenses/osl-2.0.php">Open Software License version 2.0</a>.</p>
+<p>Product and company names mentioned herein may be trademarks of their respective owners.</p>
+<p>Last updated 10/19/05</p>
+<h2>Introduction</h2>
+<p>Jove includes a BDD-based constrained random solver. The
+  solver allows you to create directed random stimulus quickly and easily
+  using the annotation (metadata) facility introduced in Java 5.0. It
+  supports randomizing all Java primitive data types (<span class="code">boolean</span>, <span class="code">int</span>,
+  etc) as well as their Object equivalents (<span class="code">Boolean</span>, <span class="code">Integer</span>, etc). Further, it
+  supports Java 5.0 enumerations and the Jove <span class="code">Bit</span> and <span class="code">BitVector</span> types.
+  Finally, it supports randomizing arbitrary types with the help of a
+  type-specific, user-provided implementation of&nbsp;<span class="code">RandomMapper</span>.</p>
+<p>The solver randomizes object instances. When the user requests
+  an instance be randomized, each&nbsp;member with the proper
+  annotation is&nbsp;randomized according to the enabled
+  constraint(s) associated with the instance. The randomized values are
+  then stored to the instance via reflection. The random values stored to
+  the members are uniformly distributed across all valid solutions.</p>
+<p>Except where otherwise noted, the classes comprising the
+  random solver are in <span class="code">com.newisys.randsolver</span>.</p>
+<h2>Jove Random Solver Annotations</h2>
+<p>Annotations are used to indicate when and how to randomize
+  variables. To describe a class as being randomizable, it should be
+  annotated with the&nbsp;<span class="code">Randomizable</span> annotation. The&nbsp;<span class="code">Randomizable</span> annotation takes as an optional argument an array of&nbsp;<span class="code">Constraint</span> annotations. A&nbsp;<span class="code">Constraint</span> annotation consists of
+  a <span class="code">String</span> describing the
+  constraint and an optional name. The syntax for constraints is
+  described later in this document. If no <span class="code">Constraint</span> argument is given, all members will be randomized across their natural
+  range (e.g. -128 to 127 for a <span class="code">byte</span>).</p>
+<p>Class members may be annotated with either <span class="code">Rand</span> or <span class="code">Randc</span>.
+  Annotating a member with <span class="code">Rand</span> will cause that variable to be randomized, subject to the enabled
+  constraints of the instance. Members annotated <span class="code">Randc</span> (random cyclic) will randomly cycle through all valid values before any
+  specific value repeats. For instance, if&nbsp;a 2-bit variable
+  annotated with <span class="code">Randc</span> were
+  randomized 8 times, the following might result:</p>
+<p style="margin-left: 40px;"><span style="color: rgb(255, 0, 0);">3, 2, 0, 1,</span> <span style="color: rgb(0, 0, 255);">1, 2, 0, 3</span></p>
+<p>In this example, the red values are those chosen in the first
+  cycle and the blue values are those chosen in the second cycle. Note
+  that no values repeat in a given cycle. Further, each cycle is
+  randomized differently. For more information about cyclic variables,
+  see&nbsp;<a href="appendixB">Appendix B</a>.</p>
+<p>Users may need to execute arbitrary code either just prior to or
+  just after randomization. This functionality can be achieved by having
+  a <span class="code">Randomizable</span> class implement the <span class="code">RandomHooks</span> interface. <span class="code">Randomizable</span> objects implementing the <span class="code">RandomHooks</span> interface will have their <span class="code">preRandomize</span> method called just prior to randomization and their <span class="code">postRandomize</span> method called just after randomization. If multiple objects implementing <span class="code">RandomHooks</span> are being randomized (e.g. randomization of an object with randomizable sub-objects), the order in which their <span class="code">preRandomize</span> and <span class="code">postRandomize</span> methods are called is undefined and should not be relied upon.</p>
+<p>The following table summarizes the annotations used by the
+  random solver:</p>
+<table border="1" cellpadding="2" cellspacing="2">
+  <tbody>
+    <tr>
+      <th>Name</th>
+      <th>Description</th>
+      <th>Arguments</th>
+    </tr>
+    <tr>
+      <td><span class="code">Randomizable</span></td>
+      <td>Denotes that a class is randomizable</td>
+      <td style="white-space: nowrap;"><span class="code">Constraint[]</span> (optional)</td>
+    </tr>
+    <tr>
+      <td><span class="code">Constraint</span></td>
+      <td>Describes the constraint(s) on a class</td>
+      <td style="white-space: nowrap;"><span class="code">String name</span> (optional)<br />
+        <span class="code">String expr</span></td>
+    </tr>
+    <tr>
+      <td><span class="code">Rand</span></td>
+      <td>Indicates that the annotated member should be
+        randomized when the instance is randomized</td>
+      <td>None</td>
+    </tr>
+    <tr>
+      <td><span class="code">Randc</span></td>
+      <td>Indicates that the annotated member should be
+        randomized in a random cyclic pattern when the instance is randomized</td>
+      <td>None</td>
+    </tr>
+    <tr>
+      <td><span class="code">RandExclude</span></td>
+      <td>Java 5.0 enumeration values annotated with <span class="code">RandExclude</span> will not be considered
+        when choosing a solution.</td>
+      <td>None</td>
+    </tr>
+    <tr>
+      <td><span class="code">Length</span></td>
+      <td>This annotation is provided in <span class="code">com.newisys.verilog.util</span>.
+        Any <span class="code">BitVector</span> annotated
+        with <span class="code">Rand</span> or <span class="code">Randc</span> must also have a <span class="code">Length</span> annotation.</td>
+      <td><span class="code">int numBits</span></td>
+    </tr>
+  </tbody>
+</table>
+<p>All Jove random solver annotations are defined in the <span class="code">com.newisys.randsolver.annotation</span> package.</p>
+<h2>A Simple Example</h2>
+<p>In the example below, we indicate that an instance of <span class="code">Foo</span> can be randomized by
+  annotating it with <span class="code">Randomizable</span>.
+  We've added a constraint (named "c1") that states <span class="code">i</span> should be&nbsp;a value greater than 4 and should not be equal to <span class="code">j</span>. Further, <span class="code">i</span> should be less than or equal to 10.</p>
+<p>We've indicated that the member <span class="code">i</span> should be randomized by annotating it with&nbsp;<span class="code">Rand</span>. This means whenever an
+  instance of <span class="code">Foo</span> is
+  randomized, <span class="code">i</span> will take
+  on a value subject to "c1". There are no restrictions on the access
+  permissions of <span class="code">i</span> and <span class="code">j</span>. They can be <span class="code">public</span>, <span class="code">private</span>, <span class="code">protected</span>, or
+  package-protected. However, members annotated with <span class="code">Rand</span> or <span class="code">Randc</span> cannot be marked as <span class="code">final</span>.</p>
+<p>In the <span class="code">main</span> method, we create a new <span class="code">Foo</span>,
+  and print out its value of <span class="code">i</span>.
+  We then create a new <span class="code">PRNG</span> (pseudo-random number generator) and randomize <span class="code">foo</span>.
+  Finally we print the value of <span class="code">i</span> again and see that it has been randomized according to "c1".</p>
+<p><span class="code">package com.newisys.example;<br />
+  <br />
+  import com.newisys.randsolver.Solver;<br />
+  import com.newisys.randsolver.annotation.*;<br />
+  import com.newisys.random.*;<br />
+  <br />
+  @Randomizable(@Constraint(name="c1", expr="i &gt; 4
+  &amp;&amp; i != j; i &lt;= 10;"))</span><br class="code" />
+  <span class="code">class Foo</span><br class="code" />
+  <span class="code">{</span><br class="code" />
+  <span class="code">&nbsp;&nbsp;&nbsp; @Rand</span><br class="code" />
+  <span class="code">&nbsp;&nbsp;&nbsp;&nbsp;int
+  i = 2;<br />
+  <br />
+  &nbsp;&nbsp;&nbsp; final private int j = 5;<br class="code" />
+  </span><br class="code" />
+  <span class="code">&nbsp;&nbsp;&nbsp; public
+  void print()</span><br class="code" />
+  <span class="code">&nbsp;&nbsp;&nbsp; {</span><br class="code" />
+  <span class="code">&nbsp;&nbsp;&nbsp;
+  &nbsp;&nbsp;&nbsp; System.out.println("i = " + i);</span><br class="code" />
+  <span class="code">&nbsp;&nbsp;&nbsp; }</span><br class="code" />
+  <br class="code" />
+  <span class="code">&nbsp;&nbsp;&nbsp; public
+  static void main(String[] args)</span><br class="code" />
+  <span class="code">&nbsp;&nbsp;&nbsp; {</span><br class="code" />
+  <span class="code">&nbsp;&nbsp;&nbsp;
+  &nbsp;&nbsp;&nbsp; Foo foo = new Foo();</span><br class="code" />
+  <span class="code">&nbsp;&nbsp;&nbsp;
+  &nbsp;&nbsp;&nbsp; foo.print();<br />
+  <br class="code" />
+  </span> <span class="code">&nbsp;&nbsp;&nbsp;
+  &nbsp;&nbsp;&nbsp; PRNG prng = 
+  PRNGFactoryFactory.getDefaultFactory().newInstance();</span><br class="code" />
+  <span class="code">&nbsp;&nbsp;&nbsp;
+  &nbsp;&nbsp;&nbsp; Solver.randomize(foo, prng);<br />
+  <br class="code" />
+  </span> <span class="code">&nbsp;&nbsp;&nbsp;
+  &nbsp;&nbsp;&nbsp; foo.print();</span><br class="code" />
+  <span class="code">&nbsp;&nbsp;&nbsp; }</span><br class="code" />
+  }</p>
+<h2>Enabling and Disabling Constraints</h2>
+<p>All constraints are enabled when an new <span class="code">Randomizable</span> instance is created. It is sometimes useful to disable a certain constraint and
+  re-enable it at a later time. If this functionality is needed, the <span class="code">name</span> argument must be present in
+  the <span class="code">Constraint</span> annotation. The <span class="code">Solver</span> class contains static methods for enabling and disabling a named
+  constraint for a specific instance:</p>
+<p style="margin-left: 40px;"><span class="code">public
+  static void enableConstraint(Randomizable r, String constraintName);</span><br class="code" />
+  <span class="code">public static void
+  disableConstraint(Randomizable r, String constraintName);</span></p>
+<p>The Solver class also provides methods to enable and disable
+  all constraints for a given instance:</p>
+<p style="margin-left: 40px;"><span class="code">public
+  static void enableAllConstraints(Randomizable r);</span><br class="code" />
+  <span class="code">public static void
+  disableAllConstraints(Randomizable r);</span></p>
+<p>Finally, the Solver class provides a way to query whether or
+  not a constraint is enabled:</p>
+<p style="margin-left: 40px;"><span class="code">public
+  static boolean isConstraintEnabled(Randomizable r, String
+  constraintName);</span></p>
+<p>It is an error if <span class="code">constraintName</span> does not correspond to any named constraint in <span class="code">r</span>.</p>
+<h2>Enabling and Disabling Member Randomization</h2>
+<p>All member variables annotated with either <span class="code">Rand</span> or <span class="code">Randc</span> are enabled when
+  an new <span class="code">Randomizable</span> is
+  created. It is sometimes useful to disable randomization of a certain
+  member and re-enable it at a later time. The <span class="code">Solver</span> class contains static methods for enabling and disabling the
+  randomization of a member for a specific instance:</p>
+<p style="margin-left: 40px;"><span class="code">public
+  static void enableRand(Randomizable r, String varName);</span><br class="code" />
+  <span class="code">public static void
+  disableRand(Randomizable r, String varName);</span></p>
+<p>The Solver class also provides methods to enable and disable
+  randomization of all <span class="code">Rand</span>/<span class="code">Randc</span> members for a given instance:</p>
+<p style="margin-left: 40px;"><span class="code">public
+  static void enableAllRand(Randomizable r);</span><br class="code" />
+  <span class="code">public static void
+  disableAllRand(Randomizable r);</span></p>
+<p>Finally, the Solver class provides a way to query whether or
+  not the randomization of a member is enabled:</p>
+<p style="margin-left: 40px;"><span class="code">public
+  static boolean isConstraintEnabled(Randomizable r, String varName);</span></p>
+<p>It is an error if <span class="code">varName</span> does not correspond to any member in <span class="code">r</span> or if the member is not annotated with either <span class="code">Rand</span> or <span class="code">Randc</span>.</p>
+<h2>Constraining Variables that are Randomizable</h2>
+<p><span class="code">Randomizable</span> classes often contain member variables that are themselves <span class="code">Randomizable</span>.
+  If these members are annotated with <span class="code">Rand</span> (<span class="code">Randc</span> is illegal in this
+  case), they will be randomized when the object containing them is
+  randomized, according to their own constraints. It is also possible to
+  further constrain their members in the top-level object's constraints.
+  An example of this&nbsp;is shown below:</p>
+<p style="margin-left: 40px;"> <span class="code">@Randomizable(@Constraint(name="subobj_constraint",
+  expr="i &gt; 4 &amp;&amp; i &lt; 10;"))<br />
+  class SubObject<br />
+  {<br />
+  &nbsp;&nbsp;&nbsp; private int i = 2;<br />
+  }<br />
+  <br />
+  @Randomizable(@Constraint(name="top_constraint", expr="subObject.i !=
+  6;"))<br />
+  class TopObject<br />
+  {<br />
+  &nbsp;&nbsp;&nbsp; @Rand<br />
+  &nbsp;&nbsp;&nbsp; SubObject subObject = new SubObject();<br />
+  }</span></p>
+<p>When an instance of type <span class="code">TopObject</span> is randomized, its <span class="code">subObject</span> member will also be randomized. The <span class="code">SubObject</span> constraint will limit values of <span class="code">i</span> to be between 5 and 9 (inclusive). The <span class="code">TopObject</span> constraint further constraints <span class="code">subObject.i</span> such that it cannot take on a value of 6. Finally, note that even
+  though <span class="code">i</span> is private, it
+  is still legal to access it in "top_constraint" (though needing to
+  access private variables generally indicates a bad design decision).</p>
+<h2>Randomization and Inheritance</h2>
+<p>The Randomizable annotation is inherited when a type is
+  subclassed. That is, if class Bar is derived from class Foo, and Foo is
+  Randomizable, Bar is also Randomizable. Further, Foo's constraints will
+  be applied to the randomization of any Bar instance (unless they have
+  been disabled for the instance). The constraint declaration of Bar can
+  contain constraints with the same name as those defined in Foo. In this
+  case, the constraint declared in Bar will override the constraint in
+  Foo.</p>
+<p>In the example below, when instances of <span class="code">Foo</span> are randomized, <span class="code">i</span> will be
+  set to 4 and <span class="code">j</span> to 6.
+  However, when instances of <span class="code">Bar</span>&nbsp;are
+  randomized, both <span class="code">i</span> and <span class="code">j</span> will be set to 6 (since
+  constraint "c1" was overridden in <span class="code">Bar</span>'s
+  declaration). Finally, the results of randomizing an instance of <span class="code">Baz</span> are identical to that of <span class="code">Bar</span>, as the declaration of <span class="code">Baz</span> inherits the constraints from <span class="code">Bar</span> and does not override any of
+  them.</p>
+<p><span class="code">@Randomizable({</span><br class="code" />
+  <span class="code">&nbsp;&nbsp;&nbsp;
+  @Constraint(name="c1", expr="i == 4;"),</span><br class="code" />
+  <span class="code">&nbsp;&nbsp;&nbsp;
+  @Constraint(name="c2", expr="j == 6;")</span><br class="code" />
+  <span class="code">})</span><br class="code" />
+  <span class="code">class Foo</span><br class="code" />
+  <big><span class="code">{</span></big><br class="code" />
+  <span class="code">&nbsp;&nbsp;&nbsp; @Rand</span><br class="code" />
+  <span class="code">&nbsp;&nbsp;&nbsp;
+  protected int i = 0;</span><br class="code" />
+  <br class="code" />
+  <span class="code">&nbsp;&nbsp;&nbsp; @Rand</span><br class="code" />
+  <span class="code">&nbsp;&nbsp;&nbsp;
+  protected int j = 0;</span><br class="code" />
+  <span class="code">}</span><br class="code" />
+  <br class="code" />
+  <span class="code">@Randomizable(@Constraint(name="c1",
+  expr="i == j;"))</span><br class="code" />
+  <span class="code">class Bar extends Foo</span><br class="code" />
+  <span class="code">{</span><br class="code" />
+  <span class="code">}</span><br />
+  <br class="code" />
+  <span class="code">class Baz extends Bar</span><br class="code" />
+  <span class="code">{</span><br class="code" />
+  <span class="code">}</span></p>
+<p>Note that it is legal for constraints in subclasses to access
+  private members of superclasses as though they were members of the
+  subclass (though needing to access private variables generally
+  indicates a bad design decision).</p>
+<h2>Creating Your Own Randomizable Type</h2>
+<p>While the solver supports randomizing a number of types by
+  default, it is possible to add a type by implementing a&nbsp;<span class="code">RandomMapper</span> or <span class="code">RandomMapperFactory</span>. A <span class="code">RandomMapper</span> maps integer values
+  to objects and vice versa. It also defines any constraints required by
+  the type. This might be useful for randomizing pre-Java 5.0
+  enumerations that use the typesafe enumeration pattern or any other
+  situation where Java 5.0 enumerations cannot be used. A <span class="code">RandomMapper</span> must have exactly 1
+  member marked as <span class="code">Rand</span> or <span class="code">Randc</span>.</p>
+<p>A <span class="code">RandomMapperFactory</span> is useful when randomizing across a type hierarchy. In this case, a
+  different <span class="code">RandomMapper</span> can be returned based on the type passed to the factory method.</p>
+<p><span class="code">RandomMapper</span> and <span class="code">RandomMapperFactory</span> objects should
+  be registered statically at initialization via the methods in <span class="code">RandomMapperRegistry</span>.</p>
+<p>Examples of <span class="code">RandomMapper</span> implementations are available in the <span class="code">com.newisys.randsolver.mappers</span> package.</p>
+<h2>Arithmetic Results</h2>
+<p>All arithmetic operators supported by the solver take integer
+  arguments and return integer results. "Integer" in this context refers
+  to a mathematical integer, not a 32-bit quantity.</p>
+<h2>Constraint Syntax</h2>
+<p>A constraint consists of one or more expressions, each ending
+  in a semicolon. There is an implicit "and" operation across multiple
+  expressions (e.g. "i &gt; 4; i &lt; 10;" is equivalent to "i
+  &gt; 4 &amp;&amp; i &lt; 10;"). Constraints may include
+  boolean literals, numeric literals, class member access, sub-object
+  member access and constraint operators.</p>
+<p>Boolean literals consist of <span class="code">true</span> and <span class="code">false</span>.</p>
+<p>For numeric literals,&nbsp;Java and
+  Verilog&nbsp;notation are allowed with the exception of Verilog
+  signed bit vectors. Examples of numeric literals include: <span class="code">19</span>, <span class="code">0x100000000L</span>, <span class="code">0x3F</span>, <span class="code">8'o377</span>, and <span class="code">4'b1011</span>.</p>
+<p>The following table describes the legal constraint operators,
+  going from highest to lowest precedence:</p>
+<table border="1" cellpadding="2" cellspacing="0">
+  <tbody>
+    <tr>
+      <td class="code" style="text-align: center;">(
+        &lt;expr&gt; )</td>
+      <td>Parenthetical grouping</td>
+    </tr>
+    <tr>
+      <td class="code" style="text-align: center;">~,
+        !</td>
+      <td>Bitwise and logical negation</td>
+    </tr>
+    <tr>
+      <td class="code" style="text-align: center;">+,
+        -</td>
+      <td>Unary plus and minus</td>
+    </tr>
+    <tr>
+      <td class="code" style="text-align: center;">*,
+        /, %</td>
+      <td>Multiplication, division, and modulo</td>
+    </tr>
+    <tr>
+      <td class="code" style="text-align: center;">+,
+        -</td>
+      <td>Addition and subtraction</td>
+    </tr>
+    <tr>
+      <td class="code" style="text-align: center;">&lt;&lt;,
+        &gt;&gt;, &gt;&gt;&gt;</td>
+      <td>Left shift, right shift, and unsigned right shift</td>
+    </tr>
+    <tr>
+      <td class="code" style="text-align: center;">in,
+        !in</td>
+      <td>In and not in operators (see below)</td>
+    </tr>
+    <tr>
+      <td class="code" style="text-align: center;">&lt;,
+        &gt;, &lt;=, &gt;=</td>
+      <td>Greater than, less than, greater than or equal to, less
+        than or equal to</td>
+    </tr>
+    <tr>
+      <td class="code" style="text-align: center;">==,
+        !=</td>
+      <td>Equals and not equals</td>
+    </tr>
+    <tr>
+      <td class="code" style="text-align: center;">&amp;</td>
+      <td>Bitwise AND</td>
+    </tr>
+    <tr>
+      <td class="code" style="text-align: center;">^</td>
+      <td>Bitwise XOR</td>
+    </tr>
+    <tr>
+      <td class="code" style="text-align: center;">|</td>
+      <td>Bitwise OR</td>
+    </tr>
+    <tr>
+      <td class="code" style="text-align: center;">&amp;&amp;</td>
+      <td>Logical AND</td>
+    </tr>
+    <tr>
+      <td class="code" style="text-align: center;">||</td>
+      <td>Logical OR</td>
+    </tr>
+    <tr>
+      <td class="code" style="text-align: center;">=&gt;</td>
+      <td>Implication (see below)</td>
+    </tr>
+  </tbody>
+</table>
+<h3>The in and !in operators</h3>
+<p>The <span class="code">in</span> operator
+  states that the expression to the left of the operator must be
+  contained in the set of ranges to the right of the operator. Ranges are
+  declared as:</p>
+<p><span class="code">{ &lt;range&gt; [,
+  &lt;range&gt;, ... ]}</span></p>
+<p>where a <span class="code">&lt;range&gt;</span> is decalred as:</p>
+<p><span class="code">&lt;expr&gt; ..
+  &lt;expr&gt;</span></p>
+<p>Thus, the following expression would state that (foo + 2) must
+  be either 3, 4, 5, 6, 7 or in the range of bar to (baz - 1). Any of the
+  variables <span class="code">foo</span>, <span class="code">bar</span> or <span class="code">baz</span> may be declared as <span class="code">Rand</span> or <span class="code">Randc</span>.</p>
+<p><span class="code">(foo + 2) in {3..7, bar..(baz
+  - 1)};</span></p>
+<p>The <span class="code">!in</span> operator
+  is simply the negation of the <span class="code">in</span> operator. That is, the expression to the left of the operator must not
+  be in any of the ranges to the right of the operator.</p>
+<h3>Implication</h3>
+<p>For the conditions that cause implication operator, <span class="code">=&gt;</span>, to evaluate to true,
+  refer to the following truth table:</p>
+<table border="1" cellpadding="2" cellspacing="0">
+  <tbody>
+    <tr>
+      <th style="text-align: center;">Left-Hand Expression</th>
+      <th style="text-align: center;">Right-Hand Expression</th>
+      <th style="text-align: center;">Left =&gt; Right</th>
+    </tr>
+    <tr>
+      <td style="text-align: center;">false</td>
+      <td style="text-align: center;">false</td>
+      <td style="text-align: center;">true</td>
+    </tr>
+    <tr>
+      <td style="text-align: center;">false</td>
+      <td style="text-align: center;">true</td>
+      <td style="text-align: center;">true</td>
+    </tr>
+    <tr>
+      <td style="text-align: center;">true</td>
+      <td style="text-align: center;">false</td>
+      <td style="text-align: center;">false</td>
+    </tr>
+    <tr>
+      <td style="text-align: center;">true</td>
+      <td style="text-align: center;">true</td>
+      <td style="text-align: center;">true</td>
+    </tr>
+  </tbody>
+</table>
+<p>In essense, the implication operator states that if the
+  expression to the left of the operator is true, the expression to the
+  right of the operator must be true. Else, the expression to the right
+  of the operator may be true or false. Both the left and right hand
+  sides of an implication expression may contain random variables.
+  Implication is generally useful for writing conditional constraints.</p>
+<a name="appendixA"></a>
+</p>
+<h2>Appendix A</h2>
+<p>A few tips on increasing performance of your randomization:</p>
+<ul>
+  <li>Use a power of 2 in ranges
+    where possible</li>
+  <li>Avoid mixing multiplication/addition on the same variables when possible</li>
+  <ul>
+    <li>If not possible, keep the number of operations to a minimum</li>
+  </ul>
+  <li>Make state variables (i.e. variables that are not randomized) <span class="code">static</span> and <span class="code">final</span> when possible</li>
+  <li>Create constraints only if there is a good reason to do so. That is, use <span class="code">com.newisys.random</span> when possible.</li>
+</ul>
+<a name="appendixB"></a>
+<h2>Appendix B</h2>
+<p>The current implementation of the random solver associates a secondary,
+  "cyclic constraint" with each cyclic random variable. Whenever that
+  variable is randomized to say, 5, the expression "var != 5;" is added
+  to this cyclic constraint, which is in turn added to the primary
+  constraint each time a solution is generated. When the cyclic
+  constraint contains no solutions, the
+  period of the cyclic variable is complete, and it is reset to allow any
+  value in that variables range.</p>
+<p>In the current implementation of the random solver, it is possible, if
+  a constraint includes more than one cyclic random variable, that one of
+  those variables might be reset before it has exhausted its state space.
+  Specifically, this can occur in the following situation:</p>
+<ul>
+  <li>More than one cyclic random
+    variable exists in a constraint</li>
+  <li>The cyclic constraint of the
+    first cyclic variable is added to
+    the primary contraint</li>
+  <li>Adding the cyclic constraint
+    of the second cyclic variable to the
+    primary constraint would cause no solutions to exist</li>
+</ul>
+<p>In this case, the second cyclic variable is "reset", meaning its cyclic
+  constraint is empty. However, it might have been the case that the
+  second variable's state space had not been exhausted.</p>
+<p>An example:</p>
+<pre class="code">    @Randomizable(@Contraint(expr="v1 + v2 &gt; 4;"))
+    class CyclicExample implements
+    {
+<div style="margin-left: 40px;">    @Randc
+    @Length(3)
+    BitVector v1 = new BitVector(3);
+ 
+    @Randc
+    @Length(3)
+    BitVector v2 = new BitVector(3);
+</div>    }
+</pre>
+<p>Here's the output of 10 randomizations. It can be seen that v2 cycles
+  before its state space is exhausted.</p>
+<div style="margin-left: 40px;"><span class="code">v1: 3'h4, v2: 3'h4</span><br class="code" />
+  <span class="code">v1:
+  3'h0, v2: 3'h6</span><br class="code" />
+  <span class="code">v1:
+  3'h3, v2: 3'h3</span><br class="code" />
+  <span class="code">v1:
+  3'h6, v2: 3'h2</span><br class="code" />
+  <span class="code">v1:
+  3'h2, v2: 3'h7</span><br class="code" />
+  <span class="code">v1:
+  3'h7, v2: 3'h5</span><br class="code" />
+  <span class="code">v1:
+  3'h5, v2: 3'h1</span><br class="code" />
+  <span class="code">v1:
+  3'h1, v2: 3'h5 // v2 has the value 3'h5 although it has not used 3'h0
+  yet</span><br class="code" />
+  <span class="code">v1:
+  3'h0, v2: 3'h6</span><br class="code" />
+  <span class="code">v1:
+  3'h7, v2: 3'h4</span></div>
+<br />
+A solution is possible and is given below:<br />
+<div style="margin-left: 40px;">
+  <p><span class="code">v1: 3'h0, v2: 3'h5</span><br class="code" />
+    <span class="code">v1:
+    3'h1, v2: 3'h6</span><br class="code" />
+    <span class="code">v1:
+    3'h2, v2: 3'h7</span><br class="code" />
+    <span class="code">v1:
+    3'h3, v2: 3'h2</span><br class="code" />
+    <span class="code">v1:
+    3'h4, v2: 3'h3</span><br class="code" />
+    <span class="code">v1:
+    3'h5, v2: 3'h1</span><br class="code" />
+    <span class="code">v1:
+    3'h6, v2: 3'h4</span><br class="code" />
+    <span class="code">v1:
+    3'h7, v2: 3'h0 // both v1 and v2 have now exhausted their state space</span><br class="code" />
+    <span class="code">v1:
+    3'h0, v2: 3'h6</span><br class="code" />
+    <span class="code">v1:
+    3'h1, v2: 3'h7</span><br class="code" />
+    <span class="code">v1:
+    3'h2, v2: 3'h4</span></p>
+</div>
+</body>
+</html>

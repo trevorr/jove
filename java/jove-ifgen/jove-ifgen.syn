@@ -1,0 +1,57 @@
+; TextPad Syntax Definition for Jove Interface Generator
+
+C=1
+
+[Syntax]
+Namespace1 = 6
+IgnoreCase = No
+KeyWordLength =
+BracketChars = {[()]}
+OperatorChars =
+PreprocStart =
+HexPrefix =
+SyntaxStart =
+SyntaxEnd =
+CommentStart = /*
+CommentEnd = */
+CommentStartAlt =
+CommentEndAlt =
+SingleComment = //
+SingleCommentCol =
+SingleCommentAlt =
+SingleCommentColAlt =
+SingleCommentEsc =
+StringsSpanLines = No
+StringStart = "
+StringEnd = "
+StringAlt =
+StringEsc = \
+CharStart =
+CharEnd =
+CharEsc =
+
+[Keywords 1]
+anyedge
+bind
+bit
+clock
+default
+depth
+drive
+hdl_node
+hdl_task
+hvl_task
+import
+inout
+input
+integer
+interface
+is
+module
+negedge
+output
+package
+port
+posedge
+sample
+shell
