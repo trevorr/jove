@@ -36,7 +36,7 @@ What platforms does Jove support?
 Most of Jove is written in the Java 5.0 language, and should therefore work on any platform with a Java 5.0 JDK. Specifically, Java-only behavioral simulations should work on any Java platform. However, the Verilog simulator support is written in C++ and therefore tends to need tweaking to work on new platforms. The table below lists platforms that Jove has been tested on so far.
 
 | Operating System | Processor Architecture | Supported Simulators |
-|-|-|-|
+|------------------|------------------------|----------------------|
 | Red Hat Enterprise Linux AS 3 | Intel x86 | Synopsys VCS, GPL Cver |
 | Microsoft Windows XP + Cygwin 1.5.18-1 | Intel x86 | GPL Cver |
 | Apple Mac OS X 10.4.2 + J2SE 5.0 Release 1 | PowerPC | GPL Cver |
@@ -47,7 +47,7 @@ What Verilog simulators does Jove support?
 Jove is designed to be easily ported to any simulator supporting PLI 2.0 / VPI. It has been tested with the simulators listed in the table below. We hope that support for other simulators will be forthcoming.
 
 | Simulator | Status | Notes |
-|-|-|-|
+|-----------|--------|-------|
 | Synopsys VCS | Extensively tested | Jove exposed various bugs in the VCS VPI implementation, most of which have been fixed in recent versions, so using the latest version is recommended. |
 | Pragmatic C GPL Cver | Minimal testing | Tested with version 2.11a, which requires a patch to fix a bug in setting Start of Sim Time callbacks. |
 
