@@ -28,7 +28,7 @@ Verification has become a very software-intensive task, and Jove is intended to 
 What is the status of Jove?
 ----
 
-Jove should be considered relatively stable and mature (though like most free software, it carries no warranties of any kind; see the [license](http://opensource.org/licenses/osl-2.0.php) for details). It has been in production use for the verification of Newisys' Horus ASIC, running a verification codebase of over 400K lines of Java source, since February 2005 and has proven exceptionally stable.
+Jove should be considered relatively stable and mature (though like most free software, it carries no warranties of any kind; see the [license](https://raw.githubusercontent.com/trevorr/jove/master/LICENSE-osl-2.0.txt) for details). It has been in production use for the verification of Newisys' Horus ASIC, running a verification codebase of over 400K lines of Java source, since February 2005 and has proven exceptionally stable.
 
 What platforms does Jove support?
 ----
@@ -54,7 +54,7 @@ Jove is designed to be easily ported to any simulator supporting PLI 2.0 / VPI. 
 How is Jove licensed?
 ----
 
-Jove is licensed under the [Open Software License 2.0](http://opensource.org/licenses/osl-2.0.php). It also includes the following third-party software:
+Jove is licensed under the [Open Software License 2.0](https://raw.githubusercontent.com/trevorr/jove/master/LICENSE-osl-2.0.txt). It also includes the following third-party software:
 
 - PLI4J - A Java&trade; Interface to the Verilog PLI  
 Copyright &copy; 2003 Trevor Robinson  
