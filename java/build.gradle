@@ -1,0 +1,44 @@
+subprojects {
+    apply plugin: "java-library"
+    sourceCompatibility = '1.5'
+    sourceSets {
+        main {
+            java {
+                srcDirs = ['src']
+            }
+        }
+        test {
+            java {
+                srcDirs = ['test']
+            }
+        }
+    }
+}
+project(":jove") {
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        implementation project(":newisys-utils")
+        testImplementation "junit:junit:4.12"
+    }
+}
+
+project(":langschema") {
+    dependencies {
+        implementation project(":newisys-utils")
+    }
+}
+project(":langschema-java") {
+    dependencies {
+        implementation project(":langschema")
+        implementation project(":newisys-utils")
+    }
+}
+project(":langschema-jove") {
+    dependencies {
+        implementation project(":langschema-java")
+        implementation project(":langschema")
+        implementation project(":newisys-utils")
+    }
+}
