@@ -1,6 +1,0 @@
-plugins {
-    id "java-library"
-}
-
-group = "com.newisys.utils"
-version = "1.0"
