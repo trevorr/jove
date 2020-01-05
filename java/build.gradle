@@ -42,3 +42,12 @@ project(":langschema-jove") {
         implementation project(":newisys-utils")
     }
 }
+project(":randsolver") {
+    dependencies {
+        implementation project(":langschema-jove")
+        implementation project(":langschema-java")
+        implementation project(":langschema")
+        implementation project(":jove")
+        testImplementation "junit:junit:4.12"
+    }
+}

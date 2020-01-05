@@ -1,0 +1,28 @@
+plugins {
+    id 'com.intershop.gradle.javacc' version '3.1.1'
+}
+repositories {
+   mavenCentral()
+}
+javacc {
+    // configuration container for all javacc configurations
+    configs {
+        template {
+            javaCCVersion = '3.2'
+            inputFile = file('src/com/newisys/randsolver/parser/ConstraintParser.jj')
+            packageName = 'com.newisys.randsolver'
+            // lookahead = '2'
+        }
+    }
+}
+
+tasks.getByName("javaccTemplate") {
+    // The javacc 3.0 does not create the directory it needs
+    doFirst {
+        mkdir "${buildDir}/generated/javacc/template/com/newisys/randsolver"
+    }
+    // The javacc 3.0 creates an incorrect Token file, the project provides its own.
+    doLast {
+        delete "${buildDir}/generated/javacc/template/com/newisys/randsolver/Token.java"
+    }
+}
