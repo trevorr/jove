@@ -626,7 +626,7 @@ typedef struct t_vpi_systf_data
   PLI_INT32 type;                       /* vpiSysTask, vpiSysFunc */
   PLI_INT32 sysfunctype;                /* vpiSysTask, vpi[Int,Real,Time,Sized,
                                                            SizedSigned]Func */
-  PLI_BYTE8 *tfname;                    /* first character must be `$' */
+  PLI_BYTE8 const *tfname;                    /* first character must be `$' */
   PLI_INT32 (*calltf)(PLI_BYTE8 *);
   PLI_INT32 (*compiletf)(PLI_BYTE8 *);
   PLI_INT32 (*sizetf)(PLI_BYTE8 *);     /* for sized function
@@ -788,7 +788,7 @@ XXTERN PLI_BYTE8 *vpi_mcd_name        PROTO_PARAMS((PLI_UINT32 cd));
 XXTERN PLI_INT32  vpi_mcd_printf      PROTO_PARAMS((PLI_UINT32 mcd,
                                                     PLI_BYTE8 *format,
                                                     ...));
-XXTERN PLI_INT32  vpi_printf          PROTO_PARAMS((PLI_BYTE8 *format,
+XXTERN PLI_INT32  vpi_printf          PROTO_PARAMS((PLI_BYTE8 const *format,
                                                     ...));
 
 /* utility routines */

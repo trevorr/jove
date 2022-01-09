@@ -267,7 +267,7 @@ EXTERN int          tf_copypvc_flag PROTO_PARAMS((int nparam));
 EXTERN void         tf_divide_long PROTO_PARAMS((int *aof_low1, int *aof_high1, int low2, int high2));
 EXTERN int          tf_dofinish PROTO_PARAMS((void));
 EXTERN int          tf_dostop PROTO_PARAMS((void));
-EXTERN int          tf_error PROTO_PARAMS((char *fmt, ...));
+EXTERN int          tf_error PROTO_PARAMS((char const *fmt, ...));
 EXTERN int          tf_evaluatep PROTO_PARAMS((int pnum));
 EXTERN p_tfexprinfo tf_exprinfo PROTO_PARAMS((int pnum, p_tfexprinfo pinfo));
 EXTERN char        *tf_getcstringp PROTO_PARAMS((int nparam));
