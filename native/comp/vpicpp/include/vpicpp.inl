@@ -47,8 +47,8 @@ inline std::string getStringValue(vpiHandle obj)
 
 //////////////////////////////////////////////////////////////////////
 
-void checkException() throw(VPIException);
-void convertException(const std::string& msg) throw(VPIException);
+void checkException(); // throw(VPIException);
+void convertException(const std::string& msg); // throw(VPIException);
 
 //////////////////////////////////////////////////////////////////////
 

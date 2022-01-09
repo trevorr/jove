@@ -39,7 +39,7 @@ vpiHandle getHandle(int type, vpiHandle refHandle)
 
 //////////////////////////////////////////////////////////////////////
 
-void checkException() throw(VPIException)
+void checkException() // throw(VPIException)
 {
     s_vpi_error_info info;
     if (vpi_chk_error(&info)) {
@@ -91,7 +91,7 @@ void checkException() throw(VPIException)
     }
 }
 
-void convertException(const std::string& msg) throw(VPIException)
+void convertException(const std::string& msg)  //throw(VPIException)
 {
     checkException();
     throw VPIException(msg);
