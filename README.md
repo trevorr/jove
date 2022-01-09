@@ -41,6 +41,13 @@ Most of Jove is written in the Java 5.0 language, and should therefore work on a
 | Microsoft Windows XP + Cygwin 1.5.18-1 | Intel x86 | GPL Cver |
 | Apple Mac OS X 10.4.2 + J2SE 5.0 Release 1 | PowerPC | GPL Cver |
 
+
+Modernization
+----
+
+An attempt is being made to upgrade Jove to build with Gradle on Java 17. It might be interesting to write a scheduler using Java Loom.
+
+
 What Verilog simulators does Jove support?
 ----
 
