@@ -1,0 +1,43 @@
+plugins {
+    id 'application'
+    id 'com.intershop.gradle.javacc' version '4.0.1'
+}
+
+javacc {
+    // configuration container for all javacc configurations
+    configs {
+        template {
+            inputFile = file('src/com/newisys/dv/ifgen/parser/IfgenParser.jj')
+            packageName = 'com.newisys.dv.ifgen.parser'
+            lookahead = '2'
+        }
+    }
+}
+repositories {
+   mavenCentral()
+}
+sourceSets {
+    main {
+        java {
+            srcDirs = ['src']
+        }
+    }
+    test {
+        java {
+            srcDirs = ['test']
+        }
+    }
+}
+dependencies {
+    implementation project(":newisys-utils")
+    implementation project(":langschema")
+    implementation project(":langschema-java")
+    implementation project(":langschema-jove")
+    implementation project(":jove")
+    implementation 'org.apache.ant:ant:1.10.12'
+    testImplementation "junit:junit:4.12"
+}
+
+application {
+    mainClass = 'com.newisys.dv.ifgen.IfgenMain'
+}

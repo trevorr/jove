@@ -1,0 +1,32 @@
+plugins {
+    id 'java-library'
+}
+
+sourceSets {
+    main {
+        java {
+            srcDirs = ['src']
+        }
+    }
+    test {
+        java {
+            srcDirs = ['test']
+        }
+    }
+}
+
+dependencies {
+    implementation project(":langschema")
+    implementation project(":langschema-java")
+    implementation project(":langschema-jove")
+    implementation project(":jove-ifgen")
+    implementation project(":randsolver")
+    implementation project(":jove")
+    implementation project(":newisys-utils")
+}
+
+task createIfs(type: JavaExec) {
+    classpath = project(":jove-ifgen").sourceSets.main.runtimeClasspath
+    mainClass = 'com.newisys.dv.ifgen.IfgenMain'
+    args '-file', './src/com/newisys/samples/and3/and3.if'
+}
