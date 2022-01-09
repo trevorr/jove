@@ -84,7 +84,7 @@ public abstract class BDDFactory
             //            if (bddpackage.equals("typed"))
             //                return TypedBDDFactory.init(nodenum, cachesize);
         }
-        catch (LinkageError _)
+        catch (LinkageError ex)
         {
             System.out.println("Could not load BDD package " + bddpackage);
         }
@@ -94,18 +94,18 @@ public abstract class BDDFactory
             Method m = c
                 .getMethod("init", new Class[] { int.class, int.class });
             return (BDDFactory) m.invoke(null, new Object[] {
-                new Integer(nodenum), new Integer(cachesize) });
+                Integer.valueOf(nodenum), Integer.valueOf(cachesize) });
         }
-        catch (ClassNotFoundException _)
+        catch (ClassNotFoundException ex)
         {
         }
-        catch (NoSuchMethodException _)
+        catch (NoSuchMethodException ex)
         {
         }
-        catch (IllegalAccessException _)
+        catch (IllegalAccessException ex)
         {
         }
-        catch (InvocationTargetException _)
+        catch (InvocationTargetException ex)
         {
         }
         // falling back to default java implementation.

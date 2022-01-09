@@ -122,7 +122,7 @@ public final class RandVarSet
         // only create an index if we actually added something to the set
         if (size != mRandVars.size())
         {
-            mRandVarToIdx.put(rv, new Integer(mCurIndex));
+            mRandVarToIdx.put(rv, Integer.valueOf(mCurIndex));
             ++mCurIndex;
         }
     }
@@ -228,7 +228,7 @@ public final class RandVarSet
         while (iter.hasNext())
         {
             RandomVariable rv = (RandomVariable) iter.next();
-            mRandVarToIdx.put(rv, new Integer(newIdx));
+            mRandVarToIdx.put(rv, Integer.valueOf(newIdx));
             ++newIdx;
         }
     }

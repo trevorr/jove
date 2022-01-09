@@ -1,8 +1,38 @@
 plugins {
     id 'com.intershop.gradle.javacc' version '3.1.1'
+    id 'java-library'
 }
 repositories {
    mavenCentral()
+}
+sourceSets {
+    main {
+        java {
+            srcDirs = ['src']
+        }
+    }
+    test {
+        java {
+            srcDirs = ['test']
+        }
+    }
+}
+dependencies {
+    implementation project(":langschema-jove")
+    implementation project(":langschema-java")
+    implementation project(":langschema")
+    implementation project(":jove")
+//    testImplementation "junit:junit:4.12"
+
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.7.1'
+    testCompileOnly 'junit:junit:4.13'
+    testRuntimeOnly 'org.junit.vintage:junit-vintage-engine'
+
+}
+tasks.withType(JavaCompile) {
+//    options.compilerArgs << '-Xlint:unchecked'
+    options.compilerArgs << '-Xlint:deprecation'
+    options.deprecation = true
 }
 javacc {
     // configuration container for all javacc configurations
@@ -25,4 +55,8 @@ tasks.getByName("javaccTemplate") {
     doLast {
         delete "${buildDir}/generated/javacc/template/com/newisys/randsolver/Token.java"
     }
+}
+
+test {
+    useJUnitPlatform()
 }

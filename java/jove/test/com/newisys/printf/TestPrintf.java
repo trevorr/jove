@@ -189,7 +189,7 @@ public class TestPrintf
     public void testSignedConversion()
     {
         // only %d and %i should be signed for a signed type
-        Object o = new Short((short) -1);
+        Object o = Short.valueOf((short) -1);
         assertEquals("1111111111111111", Printf.sprintf("%b", o));
         assertEquals("177777", Printf.sprintf("%o", o));
         assertEquals("-1", Printf.sprintf("%d", o));

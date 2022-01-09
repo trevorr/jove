@@ -156,11 +156,11 @@ public class MetaEventWaitOrderingTest
 
             List<Integer> order = soTest.order;
             assertEquals(5, order.size());
-            assertEquals(new Integer(1), order.get(0));
-            assertEquals(new Integer(2), order.get(1));
-            assertEquals(new Integer(3), order.get(2));
-            assertEquals(new Integer(4), order.get(3));
-            assertEquals(new Integer(5), order.get(4));
+            assertEquals(Integer.valueOf(1), order.get(0));
+            assertEquals(Integer.valueOf(2), order.get(1));
+            assertEquals(Integer.valueOf(3), order.get(2));
+            assertEquals(Integer.valueOf(4), order.get(3));
+            assertEquals(Integer.valueOf(5), order.get(4));
 
         }
     }

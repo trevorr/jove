@@ -313,7 +313,7 @@ public class BehavioralSimulation
      */
     public double getScaledRealTime()
     {
-        Long tmp = new Long(eventScheduler.getCurrentTime());
+        Long tmp = Long.valueOf(eventScheduler.getCurrentTime());
         return tmp.doubleValue();
     }
 

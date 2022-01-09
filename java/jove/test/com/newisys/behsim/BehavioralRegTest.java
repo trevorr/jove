@@ -196,7 +196,7 @@ public class BehavioralRegTest
 
     public void testValueChangeCallbackScaledRealInt()
     {
-        Object value = new Integer(299772);
+        Object value = Integer.valueOf(299772);
         TimeType timeType = TimeType.SCALED_REAL;
         ValueType valueType = ValueType.INT;
         VerilogTime time = new VerilogScaledRealTime(0.0);

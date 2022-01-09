@@ -1,22 +1,27 @@
-subprojects {
-    apply plugin: "java-library"
-    sourceCompatibility = '1.5'
-    sourceSets {
-        main {
-            java {
-                srcDirs = ['src']
-            }
-        }
-        test {
-            java {
-                srcDirs = ['test']
-            }
-        }
-    }
-}
+//plugins {
+//    id 'java-library'
+//}
+
+//subprojects {
+//    apply plugin: "java-library"
+//    //sourceCompatibility = '1.5'
+//    sourceSets {
+//        main {
+//            java {
+//                srcDirs = ['src']
+//            }
+//        }
+//        test {
+//            java {
+//                srcDirs = ['test']
+//            }
+//        }
+//    }
+//}
+/*
 project(":jove") {
     repositories {
-        jcenter()
+        mavenCentral()
     }
     dependencies {
         implementation project(":newisys-utils")
@@ -51,3 +56,4 @@ project(":randsolver") {
         testImplementation "junit:junit:4.12"
     }
 }
+*/

@@ -164,7 +164,7 @@ public class BehavioralReg
         }
         else if (type == ValueType.INT)
         {
-            return new Integer(buffer.intValue());
+            return Integer.valueOf(buffer.intValue());
         }
         else if (type == ValueType.SUPPRESS)
         {

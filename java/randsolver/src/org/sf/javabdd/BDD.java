@@ -968,8 +968,8 @@ public abstract class BDD
         visited[0] = true;
         visited[1] = true;
         HashMap map = new HashMap();
-        map.put(getFactory().zero(), new Integer(0));
-        map.put(getFactory().one(), new Integer(1));
+        map.put(getFactory().zero(), Integer.valueOf(0));
+        map.put(getFactory().one(), Integer.valueOf(1));
         printdot_rec(out, 1, visited, map);
 
         out.println("}");
@@ -984,7 +984,7 @@ public abstract class BDD
         Integer ri = ((Integer) map.get(this));
         if (ri == null)
         {
-            map.put(this, ri = new Integer(++current));
+            map.put(this, ri = Integer.valueOf(++current));
         }
         int r = ri.intValue();
         if (visited[r]) return current;
@@ -998,13 +998,13 @@ public abstract class BDD
         Integer li = ((Integer) map.get(l));
         if (li == null)
         {
-            map.put(l, li = new Integer(++current));
+            map.put(l, li = Integer.valueOf(++current));
         }
         int low = li.intValue();
         Integer hi = ((Integer) map.get(h));
         if (hi == null)
         {
-            map.put(h, hi = new Integer(++current));
+            map.put(h, hi = Integer.valueOf(++current));
         }
         int high = hi.intValue();
 
