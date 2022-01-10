@@ -28,7 +28,7 @@ namespace jnicpp {
 
 //////////////////////////////////////////////////////////////////////
 
-void checkException(JNIEnv* penv) throw(JException)
+void checkException(JNIEnv* penv) //throw(JException)
 {
     jthrowable obj = penv->ExceptionOccurred();
     if (obj != NULL) {
@@ -37,7 +37,7 @@ void checkException(JNIEnv* penv) throw(JException)
     }
 }
 
-void convertException(JNIEnv* penv, const std::string& msg) throw(JException)
+void convertException(JNIEnv* penv, const std::string& msg) //throw(JException)
 {
     jthrowable obj = penv->ExceptionOccurred();
     if (obj != NULL) {
@@ -48,7 +48,7 @@ void convertException(JNIEnv* penv, const std::string& msg) throw(JException)
     }
 }
 
-const char* getJNIResultMessage(jint result) throw()
+const char* getJNIResultMessage(jint result) //throw()
 {
     switch (result) {
         case JNI_OK:

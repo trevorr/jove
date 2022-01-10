@@ -67,7 +67,7 @@ public class MailboxTest
         doPeekNoWait(0);
         doSize(SIZE * 2);
 
-        doToString(m1.getClass().getName() + "{m1}");
+        doToString("m1");
     }
 
     public void doPut()

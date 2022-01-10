@@ -164,7 +164,7 @@ public class BehavioralRegTest
 
         try
         {
-            reggie.putValueDelay(new BitVector("16'h0001"), delay, mode);
+            reggie.putValueDelay(new BitVector("32'h0001"), delay, mode);
 
         }
         catch (UnsupportedOperationException e)
@@ -191,16 +191,16 @@ public class BehavioralRegTest
         TimeType timeType = TimeType.SIM;
         ValueType valueType = ValueType.OBJ_TYPE;
         VerilogTime time = new VerilogSimTime(0);
-        valueChangeCallbackTest(value, timeType, valueType, time);
+        valueChangeCallbackTest(reggie, value, timeType, valueType, time);
     }
 
     public void testValueChangeCallbackScaledRealInt()
     {
-        Object value = new Integer(299772);
+        Object value = Integer.valueOf(299772);
         TimeType timeType = TimeType.SCALED_REAL;
         ValueType valueType = ValueType.INT;
         VerilogTime time = new VerilogScaledRealTime(0.0);
-        valueChangeCallbackTest(value, timeType, valueType, time);
+        valueChangeCallbackTest(reggie, value, timeType, valueType, time);
     }
 
     public void testValueChangeCallbackSupressTimeScalar()
@@ -209,7 +209,7 @@ public class BehavioralRegTest
         TimeType timeType = TimeType.SUPPRESS;
         ValueType valueType = ValueType.SCALAR;
         VerilogTime time = null;
-        valueChangeCallbackTest(value, timeType, valueType, time);
+        valueChangeCallbackTest(new BehavioralReg(simulation, "Reggie", 1), value, timeType, valueType, time);
     }
 
     public void testValueChangeCallbackScaledRealVector()
@@ -218,7 +218,7 @@ public class BehavioralRegTest
         TimeType timeType = TimeType.SCALED_REAL;
         ValueType valueType = ValueType.VECTOR;
         VerilogTime time = new VerilogScaledRealTime(0.0);
-        valueChangeCallbackTest(value, timeType, valueType, time);
+        valueChangeCallbackTest(reggie, value, timeType, valueType, time);
     }
 
     public void testValueChangeCallbackSupressValueScalar()
@@ -227,10 +227,11 @@ public class BehavioralRegTest
         TimeType timeType = TimeType.SCALED_REAL;
         ValueType valueType = ValueType.SUPPRESS;
         VerilogTime time = new VerilogScaledRealTime(0.0);
-        valueChangeCallbackTest(value, timeType, valueType, time);
+        valueChangeCallbackTest(reggie, value, timeType, valueType, time);
     }
 
     private void valueChangeCallbackTest(
+        BehavioralReg reggie,
         Object value,
         TimeType timeType,
         ValueType valueType,

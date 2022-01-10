@@ -29,7 +29,7 @@
 //#define JVM_DEBUG
 //#define OVA_DEBUG
 
-#define SIMULATOR_VCS
+//#define SIMULATOR_VCS
 
 #ifdef SIMULATOR_VCS
     #define NO_VPI_CONTROL

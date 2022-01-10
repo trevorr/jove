@@ -946,7 +946,7 @@ public class ComplexExprSolver
                     }
                     else
                     {
-                        f.set(commitObj, new Boolean(b));
+                        f.set(commitObj, Boolean.valueOf(b));
                     }
                 }
                 else if (dataType == byte.class || dataType == Byte.class)
@@ -961,7 +961,7 @@ public class ComplexExprSolver
                     }
                     else
                     {
-                        f.set(commitObj, new Byte(b));
+                        f.set(commitObj, Byte.valueOf(b));
                     }
                 }
                 else if (dataType == char.class)
@@ -982,7 +982,7 @@ public class ComplexExprSolver
                     }
                     else
                     {
-                        f.set(commitObj, new Integer(value));
+                        f.set(commitObj, Integer.valueOf(value));
                     }
                 }
                 else if (dataType == long.class || dataType == Long.class)
@@ -995,7 +995,7 @@ public class ComplexExprSolver
                     }
                     else
                     {
-                        f.set(commitObj, new Long(value));
+                        f.set(commitObj, Long.valueOf(value));
                     }
                 }
                 else if (dataType == short.class || dataType == Short.class)
@@ -1010,7 +1010,7 @@ public class ComplexExprSolver
                     }
                     else
                     {
-                        f.set(commitObj, new Short(s));
+                        f.set(commitObj, Short.valueOf(s));
                     }
                 }
                 else if (dataType == BitVector.class)

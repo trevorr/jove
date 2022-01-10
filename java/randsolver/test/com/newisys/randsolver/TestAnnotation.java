@@ -280,7 +280,7 @@ public class TestAnnotation
             // good. X/Z state vars are not allowed.
         }
 
-        o.j = new Integer(7);
+        o.j = Integer.valueOf(7);
         Solver.randomize(o, prng);
         assertEquals(7, o.j.intValue());
     }

@@ -18,6 +18,7 @@
 
 #include <stdlib.h>
 #include <assert.h>
+#include <cstring>
 
 #ifdef JNICPP_DEBUG_REF
 #include <stdio.h>
@@ -27,9 +28,9 @@ namespace jnicpp {
 
 //////////////////////////////////////////////////////////////////////
 
-void checkException(JNIEnv* penv) throw(JException);
-void convertException(JNIEnv* penv, const std::string& msg) throw(JException);
-const char* getJNIResultMessage(jint result) throw();
+void checkException(JNIEnv* penv); // throw(JException);
+void convertException(JNIEnv* penv, const std::string& msg);  //throw(JException);
+const char* getJNIResultMessage(jint result);  //throw();
 
 //////////////////////////////////////////////////////////////////////
 
@@ -908,7 +909,14 @@ inline char* JString::convertToCharArray(JNIEnv* penv, jstring obj)
     if (chars == NULL) {
         convertException(penv, "Unable to access string characters");
     }
-    char* result = strdup(chars);
+    //char* result = strdup(chars);
+    char* result; //= strdup(chars);
+    char *dst = (char *)malloc(strlen (chars) + 1);
+    if (dst == NULL) {
+        result = NULL;
+    } else {
+        strcpy(result, chars);
+    }
     penv->ReleaseStringUTFChars(obj, chars);
     return result;
 }

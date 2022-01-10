@@ -1,0 +1,22 @@
+plugins {
+    id 'java-library'
+}
+repositories {
+   mavenCentral()
+}
+sourceSets {
+    main {
+        java {
+            srcDirs = ['src']
+        }
+    }
+    test {
+        java {
+            srcDirs = ['test']
+        }
+    }
+}
+dependencies {
+    implementation project(":newisys-utils")
+    testImplementation "junit:junit:4.12"
+}
