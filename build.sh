@@ -36,7 +36,7 @@ export JAVACC_HOME=$(pwd)/bin/lib
 cd $JOVE_CLONE/$buildDir
 curl -L -X GET "https://search.maven.org/remotecontent?filepath=junit/junit/4.13.2/junit-4.13.2.jar" -o junit.jar
 mkdir junit && mv junit.jar junit
-export NEWISYS_HOME=$(pwd)
+export NEWISYS_JAVA=$(pwd)
 
 # Build Jove
 cd $JOVE_CLONE/java

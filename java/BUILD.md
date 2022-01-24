@@ -122,7 +122,7 @@ make behavioral
 
 To run the built-in tests first obtain a JUnit jar file.
 We are going to use JUnit 4.13.2.
-The JUnit jar file must be renamed, as the Ant build system expects to find it as `$NEWISYS_HOME/junit/junit.jar`.
+The JUnit jar file must be renamed, as the Ant build system expects to find it as `$NEWISYS_JAVA/junit/junit.jar`.
 
 Let's setup JUnit outside the jove clone:
 
@@ -130,7 +130,7 @@ Let's setup JUnit outside the jove clone:
 cd <junit path>
 curl -L -X GET "https://search.maven.org/remotecontent?filepath=junit/junit/4.13.2/junit-4.13.2.jar" -o junit.jar
 mkdir junit && mv junit.jar junit
-export NEWISYS_HOME=$(pwd)
+export NEWISYS_JAVA=$(pwd)
 ```
 
 Going back to Jove, we run the `randsolver` component tests:
